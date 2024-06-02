@@ -18,7 +18,7 @@ def blur_tiff_manual(array, blur_x = 2, blur_y = 2):
             else:
                 new_array[row, col] = 1/(2*blur_x+1)**2 *np.mean(array_for_blur[row-blur_x:row+blur_x+1, col-blur_y:col+blur_y+1])
 
-    return
+    return new_array
 
 from scipy.ndimage import gaussian_filter
 

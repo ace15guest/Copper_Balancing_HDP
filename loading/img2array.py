@@ -1,3 +1,5 @@
+import os
+
 from PIL import Image
 import numpy as np
 
@@ -8,6 +10,13 @@ def bitmap_to_array(bitmap_path):
         # Convert the image data to a numpy array
         array = np.array(img)
     return array
+
+def open_multiple_bitmaps(folder):
+    bit = {}
+    for file in os.listdir(folder):
+        f = os.path.join(folder, file)
+        bit[file] = bitmap_to_array(f)
+    return bit
 
 
 def array_to_bitmap(array, output_path):
