@@ -1,7 +1,7 @@
 import unittest
 import os
 from PIL import Image
-from gerber_load import gerber_to_svg, svg_to_tiff
+from loading.gerber_load import gerber_to_svg, svg_to_tiff
 
 class TestGerberLoad(unittest.TestCase):
     def setUp(self):
