@@ -21,7 +21,5 @@ def array_to_bitmap(array, output_path):
     img.save(output_path)
 
 
-array = bitmap_to_array(
-    r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Design_Tif_Rip50\Design_Tif_Rip50\l7_signal_1oz_0.tif")
-array_to_bitmap(array,
-                r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Design_Tif_Rip50\Design_Tif_Rip50\l7_signal_1oz_0_test.tif")
+
+
