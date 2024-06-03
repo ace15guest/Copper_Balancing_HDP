@@ -1,0 +1,358 @@
+
+
+
+Private Sub Label2_Click()
+
+End Sub
+
+Private Sub TextBox12_Change()
+
+End Sub
+
+Private Sub Label11_Click()
+
+End Sub
+
+Private Sub TextBox1_Change()
+
+End Sub
+
+Private Sub BmpFileNameButton_Click()
+
+    Dim theBitmapObj As typBITMAPFILE
+    Dim theBmpfileName As String
+    Dim bmpFilePath As String
+
+
+    Dim theTiffObj As mTiff
+    Dim theTiffFileName As String
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim newTiffObj As mTiff
+
+    'Declare a variable as a FileDialog object.
+    Dim fd As FileDialog
+
+    'Create a FileDialog object as a File Picker dialog.
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+
+    Dim theColorMap As typColorMap
+    Dim theColorScale As String
+
+    ' Open the file dialog
+    With fd
+        .AllowMultiSelect = False
+        .Filters.Clear
+        .Filters.Add "Images", "*.bmp", 1
+
+        If .Show = -1 Then
+                BMPfileName_TextBox.value = fd.SelectedItems(1)
+                theBmpfileName = fd.SelectedItems(1)
+                'read bitmap into memory
+                BitmapFileRead theBmpfileName, theBitmapObj  ', "DebugBMPRead", False
+                'convert bitmap to tiff
+                Bitmap2Tiff theBitmapObj, theTiffObj
+                'Create tiff file name
+                bmpFilePath = fso.getparentfoldername(theBmpfileName)
+                theTiffFileName = bmpFilePath & "\" & fso.getbasename(theBmpfileName) & "-converted.tif"
+                If fso.fileexists(thefile) Then
+                    fso.deletefile thefile, True
+                End If
+
+                'write the tiff file to disk
+                TiffWrite theTiffFileName, theTiffObj ', "DebugBMP2TiffWrite", False
+                TiffRead theTiffFileName, newTiffObj ', "DebugBMP2TiffRead", False
+
+        End If
+    End With
+End Sub
+
+Private Sub CommandButton_Color0_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color0.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color0.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color1_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color1.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color1.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color2_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color2.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color2.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color3_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color3.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color3.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color45_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color45.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color45.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color6_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color6.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color6.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color7_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color7.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color7.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color8_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color8.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color8.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+Private Sub CommandButton_Color9_Click()
+    'set dialog to current color
+
+    Dim theColor As typMyRGBColor
+
+    myRGBfromLong CommandButton_Color9.BackColor, theColor
+
+    If Application.Dialogs(xlDialogEditColor).Show(10, theColor.Red, theColor.Green, theColor.Blue) Then
+        CommandButton_Color9.BackColor = ActiveWorkbook.colors(10)
+    End If
+End Sub
+
+
+Private Sub CommandButton1_Click()
+   Dim TifFile As String
+   TifFile =
+End Sub
+
+Private Sub TextBox_ColorValue7_Change()
+
+End Sub
+
+Private Sub UpdateColors_Button_Click()
+    Dim theTiffFile As String
+    theTiffFile = TiffFileName_TextBox.value
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim theBMPfile As String
+    theBMPfile = fso.getparentfoldername(theTiffFile) & "\" & fso.getbasename(theTiffFile) & ".bmp"
+
+    'return error if file does not exist
+    If Not fso.fileexists(theBMPfile) Then Exit Sub
+
+    UpdateColors theBMPfile
+End Sub
+
+Private Sub UserForm_Initialize()
+    Dim wks As Worksheet
+    Set wks = Sheets("Settings")
+
+    Dim metavgcmd As String
+    metavgcmd = wks.Cells(2, 3).value
+
+    Dim workingDir As String
+    workingDir = wks.Cells(4, 3).value
+
+    Dim TempDirName As String
+    TempDirName = workingDir & "\Temp_CuBalance"
+
+    'See if the temp directory already exists
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim SelectedFileName As String
+    SelectedFileName = fso.getbasename(MetAvgExe)
+
+    Dim LogfileName As String
+    LogfileName = workingDir & "\Temp_CuBalance"
+
+
+
+End Sub
+
+Private Sub TiffFileNameButton_Click()
+    Dim thefile As String
+
+    'Declare a variable as a FileDialog object.
+    Dim fd As FileDialog
+
+    'Create a FileDialog object as a File Picker dialog.
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+
+    Dim theColorMap As typColorMap
+    Dim theColorScale As String
+    Dim tiffFileName As String
+    Dim thetiff As mTiff
+
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    ' Open the file dialog
+    With fd
+        .AllowMultiSelect = False
+        .Filters.Clear
+        .Filters.Add "Images", "*.TIF", 1
+
+        If .Show = -1 Then
+                TiffFileName_TextBox.value = fd.SelectedItems(1)
+                tiffFileName = fd.SelectedItems(1)
+
+                'Read the Tiff Data for output to Debug Page
+                TiffRead tiffFileName, thetiff  ', "DebugTIFRead"
+
+                TiffWrite fso.getparentfoldername(tiffFileName) & "\" & fso.getbasename(tiffFileName) & "-writeTest.tif", thetiff   ', "DebugTIFReadWrite"
+
+
+                'theFile = Tiff2ColorBMP(TiffFileName.Value)
+                thefile = ConvertTiff2BmpFile(tiffFileName)
+                If thefile <> "Error" Then
+
+                    'output debug details of bitmap before color change.
+                    'DebugBitMapFileInfo thefile, 0
+
+                    'theColorMap = BitmapFileReadColorMap(theFile)
+                    theColorMap = BitmapFileSetColorMap(thefile, 1, _
+                        StopMaxValue:=100, Solid01:=CheckBox_SolidColor_0_1.value, Stop0Color:=CommandButton_Color0.BackColor, _
+                        Stop1Value:=Val(TextBox_ColorValue1.value), Solid12:=CheckBox_SolidColor_1_2.value, Stop1Color:=CommandButton_Color1.BackColor, _
+                        Stop2Value:=Val(TextBox_ColorValue2.value), Solid23:=CheckBox_SolidColor_2_3.value, Stop2Color:=CommandButton_Color2.BackColor, _
+                        Stop3Value:=Val(TextBox_ColorValue3.value), Solid34:=CheckBox_SolidColor_3_4.value, Stop3Color:=CommandButton_Color3.BackColor, _
+                        Stop4Value:=Val(TextBox_ColorValue4.value), _
+                                                                     Solid45:=True, Stop45Color:=CommandButton_Color45.BackColor, _
+                        Stop5Value:=Val(TextBox_ColorValue5.value), _
+                        Stop6Value:=Val(TextBox_ColorValue6.value), Solid56:=CheckBox_SolidColor_5_6.value, Stop6Color:=CommandButton_Color6.BackColor, _
+                        Stop7Value:=Val(TextBox_ColorValue7.value), Solid67:=CheckBox_SolidColor_6_7.value, Stop7Color:=CommandButton_Color7.BackColor, _
+                        Stop8Value:=Val(TextBox_ColorValue8.value), Solid78:=CheckBox_SolidColor_7_8.value, Stop8Color:=CommandButton_Color8.BackColor, _
+                        StopMinValue:=0, Solid89:=CheckBox_SolidColor_8_9.value, Stop9Color:=CommandButton_Color9.BackColor _
+                        )
+
+                    'If IsArrayAllocated(theColorMap.theColors) Then
+
+                            SelectedImage.Picture = LoadPicture(thefile)
+
+                            'Read the converted bitmap file for debug purposes.
+                            Dim bitmapobj As typBITMAPFILE
+                            BitmapFileRead thefile, bitmapobj ', "DebugTIF2BMP", False
+
+
+                            'output debug details of bitmap
+                            'DebugBitMapFileInfo thefile, 20
+
+                            'create and load the color scale
+                            theColorScale = CreateColorScaleBitMap(thefile, theColorMap, 20)
+                            If theColorScale <> "" Then ColorScaleImage.Picture = LoadPicture(theColorScale)
+
+                            'output debug details of bitmap
+                            'DebugBitMapFileInfo theColorScale, 40
+                            Repaint
+                    'End If
+                End If
+        End If
+    End With
+End Sub
+
+Private Sub UpdateColors(thefile As String)
+
+    Dim theColorMap As typColorMap
+    Dim theColorScale As String
+
+
+    'theColorMap = BitmapFileReadColorMap(theFile)
+    theColorMap = BitmapFileSetColorMap(thefile, 1, _
+        StopMinValue:=0, Solid01:=CheckBox_SolidColor_0_1.value, Stop0Color:=CommandButton_Color0.BackColor, _
+        Stop1Value:=Val(TextBox_ColorValue1.value), Solid12:=CheckBox_SolidColor_1_2.value, Stop1Color:=CommandButton_Color1.BackColor, _
+        Stop2Value:=Val(TextBox_ColorValue2.value), Solid23:=CheckBox_SolidColor_2_3.value, Stop2Color:=CommandButton_Color2.BackColor, _
+        Stop3Value:=Val(TextBox_ColorValue3.value), Solid34:=CheckBox_SolidColor_3_4.value, Stop3Color:=CommandButton_Color3.BackColor, _
+        Stop4Value:=Val(TextBox_ColorValue4.value), _
+                                                     Solid45:=True, Stop45Color:=CommandButton_Color45.BackColor, _
+        Stop5Value:=Val(TextBox_ColorValue5.value), _
+        Stop6Value:=Val(TextBox_ColorValue6.value), Solid56:=CheckBox_SolidColor_5_6.value, Stop6Color:=CommandButton_Color6.BackColor, _
+        Stop7Value:=Val(TextBox_ColorValue7.value), Solid67:=CheckBox_SolidColor_6_7.value, Stop7Color:=CommandButton_Color7.BackColor, _
+        Stop8Value:=Val(TextBox_ColorValue8.value), Solid78:=CheckBox_SolidColor_7_8.value, Stop8Color:=CommandButton_Color8.BackColor, _
+        StopMaxValue:=100, Solid89:=CheckBox_SolidColor_8_9.value, Stop9Color:=CommandButton_Color9.BackColor _
+        )
+
+    SelectedImage.Picture = LoadPicture(thefile)
+
+    'output debug details of bitmap
+    DebugBitMapFileInfo thefile, "Debug", 20
+
+    'create and load the color scale
+    theColorScale = CreateColorScaleBitMap(thefile, theColorMap, 20)
+    If theColorScale <> "" Then ColorScaleImage.Picture = LoadPicture(theColorScale)
+
+    'output debug details of bitmap
+    DebugBitMapFileInfo theColorScale, "debug", 40
+
+
+End Sub
+
+Private Sub ZoomIn_Click()
+    SelectedImage.Height = SelectedImage.Height * 1.5
+    SelectedImage.Width = SelectedImage.Width * 1.5
+End Sub
+
+Private Sub ZoomOut_Click()
+    SelectedImage.Height = SelectedImage.Height * 0.75
+    SelectedImage.Width = SelectedImage.Width * 0.75
+End Sub

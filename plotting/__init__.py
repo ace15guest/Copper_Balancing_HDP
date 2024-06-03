@@ -8,7 +8,7 @@ def plot_heat_map(array):
     array = max_num + min_num - array
     # Create a colormap that goes from blue to white to red
     cmap = plt.get_cmap('bwr')
-    colors_custom = [(0, 'blue'), (.5, 'lightblue'), (.7, 'white'), (.75, 'lightyellow'),  (.9, 'red'),(1, 'red')]
+    colors_custom = [(0, 'blue'), (.3, 'lightblue'), (.5, 'white'), (.6, 'lightyellow'),  (.9, 'red'),(1, 'red')]
     cmap = LinearSegmentedColormap.from_list('custom_cmap', colors_custom)
     # Generate a list of 100 colors from the colormap
     color = [cmap(i) for i in range(cmap.N)]
