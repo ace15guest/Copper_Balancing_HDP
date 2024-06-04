@@ -125,6 +125,19 @@
      <string>CheckBox</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="generate_button">
+    <property name="geometry">
+     <rect>
+      <x>540</x>
+      <y>670</y>
+      <width>91</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Generate</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -139,10 +152,52 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionNew"/>
+    <addaction name="actionOpen"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionUndo_Last_Action"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionInput_Gerber"/>
+    <addaction name="actionInput_Tiffs"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionNew">
+   <property name="text">
+    <string>New</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="actionInput_Gerber">
+   <property name="text">
+    <string>Input Gerber</string>
+   </property>
+  </action>
+  <action name="actionInput_Tiffs">
+   <property name="text">
+    <string>Input Tiffs</string>
+   </property>
+  </action>
+  <action name="actionUndo_Last_Action">
+   <property name="text">
+    <string>Undo Last Action</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
