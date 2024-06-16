@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.colors as c
 from matplotlib.colors import LinearSegmentedColormap
-def plot_heat_map(array):
+def plot_heat_map(array, colors_custom=None):
     max_num = np.max(array)
     min_num = np.min(array)
     array = max_num + min_num - array
