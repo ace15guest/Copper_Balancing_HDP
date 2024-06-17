@@ -14,15 +14,20 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.colors import LinearSegmentedColormap
 from loading.gerber_load import *
 from gui.loading_bar import LoadingScreen
+from gui.scroll import DragItem
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
 
 import numpy as np
 
 
 class Ui_MainWindow(QtWidgets.QMainWindow):
+    swap = pyqtSignal([int, int])
 
     def __init__(self):
         self.run_verification = True
         super().__init__()
+        self.swap.connect(self.swap_widgets)
+
     def setupUi(self, MainWindow):
 
         self.output_group_box_x = 900  # Size of the output group box in the x direction
@@ -74,21 +79,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.menuEdit.setObjectName("menuEdit")
         self.menuSettings = QtWidgets.QMenu(parent=self.menubar)
         self.menuSettings.setObjectName("menuSettings")
-
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
-        self.loading_bar = QtWidgets.QProgressBar()
-        self.loading_bar.setMaximum(100)
-        self.loading_bar.setValue(0)
-
-        # Add the QProgressBar to the status bar
-        self.statusbar.addPermanentWidget(self.loading_bar)
-
-
-
-
         self.actionNew = QtGui.QAction(parent=MainWindow)
         self.actionNew.setObjectName("actionNew")
         self.actionOpen = QtGui.QAction(parent=MainWindow)
@@ -225,11 +219,22 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     #########################################################
     ################# Action functions ######################
     #########################################################
-    def gerber_folder_button_clicked(self):
-        # self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.mainwidget, "Select Folder")
 
+    def swap_widgets(self, pos1, pos2):
+        print(f"Swapping widgets at positions {pos1} and {pos2}")
+        widget1 = self.layout.itemAt(pos1).widget()
+        widget2 = self.layout.itemAt(pos2).widget()
+        self.layout.removeWidget(widget2)
+        self.layout.removeWidget(widget1)
+        self.layout.insertWidget(pos1, widget2)
+        self.layout.insertWidget(pos2, widget1)
+        widget1.set_data(pos2)
+        widget2.set_data(pos1)
+        print(f"Finished swapping widgets at positions {pos1} and {pos2}")
+    def gerber_folder_button_clicked(self):
         # options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        # self.loading_screen.progressBar.setMaximum(len(os.listdir(self.folder_name)))
+
+        self.loading_screen.progressBar.setMaximum(len(os.listdir(self.folder_name)))
         if self.folder_name:
             self.gerber_folder_line_edit.setText(self.folder_name)
 
@@ -237,13 +242,14 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             for idx, i in enumerate(os.listdir(self.folder_name)):
                 if self.run_verification:
                     if verify_gerber(os.path.join(self.folder_name, i)):
-                        checkbox = QtWidgets.QCheckBox(f"{i}")
+                        checkbox = DragItem(str(f"{i}"))
                         self.layout.addWidget(checkbox)
                 else:
                     checkbox = QtWidgets.QCheckBox(f"{i}")
                     self.layout.addWidget(checkbox)
-                # self.loading_screen.set_progress(idx, f"Please Wait Loading... {i}%")
-        # self.loading_screen.close()
+                self.loading_screen.set_progress(idx, f"Please Wait Loading... {i}%")
+        self.loading_screen.close()
+
 
 
     def bitmap_save_button_clicked(self):
@@ -328,23 +334,23 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
     def start_loading(self, function):
         if function == self.gerber_folder_button_clicked:
             self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.mainwidget, "Select Folder")
-            self.loading_screen = LoadingScreen()
-    #     self.loading_screen = LoadingScreen()
-    #     self.loading_screen.cancel_requested.connect(self.stop_loading)
-    #
-    #     # Show the loading screen
-    #     self.loading_screen.show()
-    #     self.loading_screen.raise_()
-    #
-    #     # Create a QThread
-    #     self.thread = QtCore.QThread(self)
-    #
-    #     # Move the loading screen to the QThread
-    #     self.loading_screen.moveToThread(self.thread)
-    #
-    #     # Start the QThread
-    #     self.thread.started.connect(function)
-    #     self.thread.start()
+
+        self.loading_screen = LoadingScreen()
+        self.loading_screen.cancel_requested.connect(self.stop_loading)
+
+        # Show the loading screen
+        self.loading_screen.show()
+        self.loading_screen.raise_()
+
+        # Create a QThread
+        self.thread = QtCore.QThread(self)
+
+        # Move the loading screen to the QThread
+        self.loading_screen.moveToThread(self.thread)
+
+        # Start the QThread
+        self.thread.started.connect(function)
+        self.thread.start()
     def stop_loading(self):
         # Stop the QThread
         print('Hello')
