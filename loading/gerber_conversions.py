@@ -1,6 +1,9 @@
 import os
 import time
-
+import fitz  # PyMuPDF
+import numpy as np
+from PIL import Image
+from PIL import Image as pImage
 from pygerber.gerberx3.api._v2 import OnParserErrorEnum
 from pygerber.gerberx3.api.v2 import GerberFile
 from pathlib import Path
@@ -54,10 +57,45 @@ def gerber_to_pdf_gerbv(file_path, save_path, D=50):
     subprocess.Popen(command)
     return
 
-gerber_odb_in = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\l6_plane_1oz.gdo"
-gerber_274x = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\l6_plane_1oz.274x"
-svg_path = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\l6_plane_1oz.svg"
-tiff_path = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\l6_plane_1oz.tiff"
+def pdf_page_to_array(pdf_path, page_number=0, dpi=20):
+    doc = fitz.open(pdf_path+ ".pdf")
+
+    # Select a specific page
+    page = doc.load_page(page_number)
+
+    # Render the page as an image at the specified DPI
+    pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
+
+    # Convert the pixmap to a NumPy array
+    img_array = np.frombuffer(pix.samples, dtype=np.uint8)
+
+    # Reshape the array to match the image dimensions
+    img_array = img_array.reshape((pix.height, pix.width, pix.n))
+
+    # Close the PDF document
+    doc.close()
+
+
+    return array_to_bitmap(img_array, fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\{pdf_path}.tiff")
+
+def array_to_bitmap(array, output_path):
+    # Convert the list of lists of tuples back to a numpy array
+    array = np.array(array, dtype=np.uint8)
+
+    # Create an image from the array
+    img = pImage.fromarray(array)
+
+    # Save the image to a file
+    img.save("out.bmp")
+
+name = "l19_plane_1oz"
+gerber_odb_in = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.gdo"
+gerber_274x = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.274x"
+svg_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.svg"
+tiff_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.tiff"
+pdf_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}"
 gerber_to_274x(gerber_odb_in, gerber_274x)
-gerber_to_svg_gerbv(gerber_274x, save_path="output.svg")
-svg_to_tiff(svg_path, tiff_path, width=100, height=100)
+gerber_to_pdf_gerbv(gerber_274x, pdf_path, D=100)
+pdf_page_to_array(pdf_path, 0, dpi=200)
+
+# svg_to_tiff(svg_path, tiff_path, width=100, height=100)
