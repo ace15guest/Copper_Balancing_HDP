@@ -9,6 +9,7 @@ def bitmap_to_array(bitmap_path):
     with Image.open(bitmap_path) as img:
         # Convert the image data to a numpy array
         array = np.array(img)
+    os.remove(bitmap_path)
     return array
 
 def open_multiple_bitmaps(folder):
@@ -16,6 +17,7 @@ def open_multiple_bitmaps(folder):
     for file in os.listdir(folder):
         f = os.path.join(folder, file)
         bit[file] = bitmap_to_array(f)
+
     return bit
 
 

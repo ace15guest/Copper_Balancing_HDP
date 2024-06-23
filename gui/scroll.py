@@ -1,45 +1,37 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QHBoxLayout, QCheckBox
 from PyQt6.QtGui import QDrag, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
-class DragItem(QCheckBox):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.original = self.text()
-        self.current = self.original
-        self.setToolTip(f"Original: {self.original}\n Current: {self.current}")
-        self.setContentsMargins(25, 5, 25, 5)
-        self.setStyleSheet("border: 1px solid black;")
-        self.setAcceptDrops(True)
+from PyQt6.QtGui import QCursor, QPalette, QColor
 
-    def set_data(self, number):
-        self.current = number
-        self.setToolTip(f"Original: {self.original}\n Current: {self.current}")
 
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasImage():
-            e.accept()
+
+
+from PyQt6.QtWidgets import QComboBox
+
+class ItemWidget(QWidget):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        self.layout = QHBoxLayout(self)
+        self.text = text
+        # Create a combo box
+        self.comboBox = QComboBox(self)
+        self.comboBox.addItem("1 oz")
+        self.comboBox.addItem("2 oz")
+        self.comboBox.addItem("3 oz")
+        self.layout.addWidget(self.comboBox)
+
+        self.checkBox = QCheckBox(text, self)
+        self.checkBox.setFixedSize(100, 15)
+        self.layout.addWidget(self.checkBox)
+        self.setStyleSheet("QCheckBox::indicator:unchecked { background: black; }")
+
+    def set_highlight(self, highlight):
+        if highlight:
+            palette = self.palette()
+            palette.setColor(QPalette.ColorRole.Window, QColor('red'))
+            self.setAutoFillBackground(True)
+            self.setPalette(palette)
         else:
-            e.ignore()
-
-    def dragMoveEvent(self, e):
-        if e.mimeData().hasImage():
-            e.accept()
-        else:
-            e.ignore()
-
-    def dropEvent(self, e):
-        source_pos = e.source().current
-        current_pos = self.current
-        self.window().swap.emit(*sorted([source_pos, current_pos]))
-
-    def mouseMoveEvent(self, e):
-        if e.buttons() == Qt.MouseButton.LeftButton:
-            drag = QDrag(self)
-            mime = QMimeData()
-            pixmap = QPixmap(self.size())
-            mime.setImageData(pixmap)
-            drag.setMimeData(mime)
-            self.render(pixmap)
-            drag.setPixmap(pixmap)
-            drag.exec(Qt.DropAction.MoveAction)
+            self.setAutoFillBackground(False)
+            self.setPalette(self.style().standardPalette())
 

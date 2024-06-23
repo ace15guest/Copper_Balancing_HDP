@@ -35,7 +35,7 @@ class LoadingScreen(QtWidgets.QSplashScreen):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.progressBar)
-        layout.addWidget(self.cancel_button)
+
 
         # Set the layout
         self.setLayout(layout)
