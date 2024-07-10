@@ -224,8 +224,10 @@ class MainWindow(QMainWindow):
         pass
 
     def plot_data(self, data):
+        data = np.random.rand(10, 10)
+
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(['#0000FF', '#00FF00', '#FF0000'], values=data)
-        self.canvas.axes.imshow(data, cmap=custom_colormap_colors)
+        self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm, interpolation='nearest')
 
         self.canvas.draw()
 
@@ -239,9 +241,7 @@ class MainWindow(QMainWindow):
         """
         # Ensure the values list is one item longer than the colors list
         # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
-        min_val = np.min(values)
-        max_val = np.max(values)
-        thresholds = np.linspace(min_val, max_val, num=11)
+
         colors_custom = [(0, 'blue'), (.3, 'lightblue'), (.5, 'white'), (.6, 'lightyellow'), (.9, 'red'), (1, 'red')]
         # new_colors = []
         # for i, color in enumerate(colors_custom):
