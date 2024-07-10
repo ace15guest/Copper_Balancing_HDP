@@ -1,19 +1,24 @@
 import time
 
+import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QRect, pyqtSignal, Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QVBoxLayout, QPushButton, QGroupBox
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+
 from gui.loading_bar import LoadingScreen
 from gui import scroll
 from loading.gerber_load import check_gerber, verify_gerber
 import os
 import json
+import matplotlib.colors as c
+
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMessageBox
 from gui.colorbar import BlendedColorBar
 from gui.plotting_canvas import MplCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
-from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff
+from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array
 from loading.img2array import bitmap_to_array
 from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss
 from calculations.multi_layer import multiple_layers
@@ -35,10 +40,13 @@ class MainWindow(QMainWindow):
         self.temp_svg_folder = "Assets/temp_svg"
         self.temp_error_folder = "Assets/temp_error"
         self.temp_tiff_folder = "Assets/temp_tiff"
+        self.temp_pdf_folder = "Assets/temp_pdf"
+
         clear_folder(self.temp_folder)
         clear_folder(self.temp_svg_folder)
         clear_folder(self.temp_error_folder)
         clear_folder(self.temp_tiff_folder)
+        clear_folder(self.temp_pdf_folder)
 
 
         self.items = []
@@ -46,6 +54,7 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         self.show()
+
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -184,42 +193,77 @@ class MainWindow(QMainWindow):
 
         self.loading_data = {}
         self.data_paths_to_convert = {}
+        self.arrays = {}
+
+        file_ct = 0
+
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_pdf
-            # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
-            # self.data_paths_to_convert[svg_name] = {}
-            #
-            # self.data_paths_to_convert[svg_name]['error_log'] = error_log
-            # self.data_paths_to_convert[svg_name]['file name'] = file
+            gerber_to_pdf_gerbv(os.path.join(self.folder_name, file), self.temp_pdf_folder, os.path.join(self.temp_pdf_folder, file))
+            file_ct += 1
 
-        # files_made = False
-        # while not files_made:
-        #     if len(os.listdir(self.temp_svg_folder)) >= len(self.files_chosen):
-        #         files_made = True
-        #     else:
-        #         time.sleep(3) # Wait for the files to be made 3 seconds because errors occur if we do not give ample time
-        #
-        #
-        # for idx, file in enumerate(self.data_paths_to_convert.keys()):
-        #     error_log = self.data_paths_to_convert[file]['error_log']
-        #
-        #     file_name = self.data_paths_to_convert[file]['file name']
-        #     tiff_path = f"Assets/temp_tiff/{file_name}.png"
-        #
-        #     # svg_to_tiff_inkscape(file, tiff_path, height=100, width=100, error_log_path=error_log)
-        #     svg_to_tiff(file, tiff_path, error_log_path=error_log)
-        #     if self.blur == 'manual':
-        #         self.loading_data[file] = blur_tiff_manual(bitmap_to_array(tiff_path), blur_x=self.blur_x, blur_y=self.blur_y)
-        #     elif self.blur == 'gauss':
-        #         self.loading_data[file] = blur_tiff_gauss(bitmap_to_array(tiff_path), sigma=self.sigma)
-        #     pass
-        #
-        # self.out_data = multiple_layers(self.loading_data)
+        while len(os.listdir(self.temp_pdf_folder)) < file_ct:
+            time.sleep(5)
+
+        for idx, file in enumerate(os.listdir(self.temp_pdf_folder)):
+            self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
+            self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
+
+        data = multiple_layers(self.arrays)
+        min_value = np.min(data)
+        max_value = np.max(data)
+        normalized_data = (data - min_value) * (255 - 0) / (max_value - min_value) + 0
+        normalized_data = normalized_data.astype(np.uint8)
         self.loading_screen.close()
+        self.loading_screen.destroy()
+
+        self.plot_data(data)
+            # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
+
 
         pass
 
+    def plot_data(self, data):
+        custom_colormap_colors, norm = self.create_custom_colormap_with_values(['#0000FF', '#00FF00', '#FF0000'], values=data)
+        self.canvas.axes.imshow(data, cmap=custom_colormap_colors)
+
+        self.canvas.draw()
+
+    def create_custom_colormap_with_values(self, colors, values):
+        """
+        Creates a custom colormap from a list of colors and their corresponding value ranges.
+
+        :param colors: A list of color hex codes.
+        :param values: A list of values corresponding to each color.
+        :return: A LinearSegmentedColormap object and a Normalize object for mapping values.
+        """
+        # Ensure the values list is one item longer than the colors list
+        # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
+        min_val = np.min(values)
+        max_val = np.max(values)
+        thresholds = np.linspace(min_val, max_val, num=11)
+        colors_custom = [(0, 'blue'), (.3, 'lightblue'), (.5, 'white'), (.6, 'lightyellow'), (.9, 'red'), (1, 'red')]
+        # new_colors = []
+        # for i, color in enumerate(colors_custom):
+        #     new_colors.append((thresholds[i], color[1]))
+        #
+        # colors_custom = new_colors
+        cmap = LinearSegmentedColormap.from_list('custom_cmap', colors_custom)
+        # Generate a list of 100 colors from the colormap
+        colors = [cmap(i) for i in range(cmap.N)]
+
+        # Convert the colors to hexadecimal
+        hex_colors = [c.to_hex(color) for color in colors]
+
+        # Define the colors and values in hex
+        values = np.linspace(np.min(values.flatten()), np.max(values.flatten()), 100)  # Modify the range to start at 0 and end at the max value
+
+        # Create the custom color map
+        cmap = c.ListedColormap(hex_colors)
+
+        # Normalize the color map
+        norm = c.BoundaryNorm(values, cmap.N)
+        return cmap, norm
     # noinspection PyUnboundLocalVariable
     def gerber_folder_button_clicked(self):
         # options |= QtWidgets.QFileDialog.DontUseNativeDialog

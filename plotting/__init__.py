@@ -50,7 +50,7 @@ def plot_heat_map(array, ax=None, colors_custom=None):
     array = max_num + min_num - array
 
     # Create a colormap that goes from blue to white to red
-    colors_custom = [(0, 'blue'), (.3, 'lightblue'), (.5, 'white'), (.6, 'lightyellow'), (.9, 'red'), (1, 'red')]
+
     cmap = LinearSegmentedColormap.from_list('custom_cmap', colors_custom)
 
     # Generate a list of 100 colors from the colormap
@@ -74,8 +74,8 @@ def plot_heat_map(array, ax=None, colors_custom=None):
     plt.show()
 
 
-# Example usage:
-if __name__ == '__main__':
-    data = np.random.rand(10, 10)
-    fig, ax = plt.subplots()
-    plot_heat_map(data, ax=ax)
+# # Example usage:
+# if __name__ == '__main__':
+#     data = np.random.rand(10, 10)
+#     fig, ax = plt.subplots()
+#     plot_heat_map(data, ax=ax)
