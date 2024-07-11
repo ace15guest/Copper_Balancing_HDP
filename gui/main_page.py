@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import QMessageBox
 from gui.colorbar import BlendedColorBar
 from gui.plotting_canvas import MplCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
-from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array
+from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv
 from loading.img2array import bitmap_to_array
 from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss
 from calculations.multi_layer import multiple_layers
@@ -199,15 +199,15 @@ class MainWindow(QMainWindow):
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_pdf_gerbv(os.path.join(self.folder_name, file), self.temp_pdf_folder, os.path.join(self.temp_pdf_folder, file), D=90)
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=100, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
             file_ct += 1
 
         while len(os.listdir(self.temp_pdf_folder)) < file_ct:
             time.sleep(5)
 
-        for idx, file in enumerate(os.listdir(self.temp_pdf_folder)):
-            self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
+        # for idx, file in enumerate(os.listdir(self.temp_pdf_folder)):
+        #     self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
+        #     self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
 
         data = multiple_layers(self.arrays)
         min_value = np.min(data)

@@ -51,7 +51,18 @@ def gerber_to_274x(file_path, save_path):
     subprocess.Popen(command)
     return
 
+def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log"):
+    """
 
+    :param gerb_file:
+    :param save_path:
+    :param dpi: 0-2000
+    :return:
+    """
+    Path(save_folder).mkdir(exist_ok=True, parents=True)
+    command = f'Assets\gerbv\gerbv -x png -D {dpi} -o "{save_path}.png" "{gerb_file}" 2> {error_log_path}.txt'
+    subprocess.Popen(command, shell=True)
+    return
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
 
@@ -66,21 +77,23 @@ def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     return
 
 
-def pdf_page_to_array(pdf_path, page_number=0, dpi=20):
+def pdf_page_to_array(pdf_path, page_number=0, dpi=100):
     doc = fitz.open(pdf_path)
 
     # Select a specific page
     page = doc.load_page(page_number)
 
     # Render the page as an image at the specified DPI
-    pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
+    pix = page.get_pixmap(matrix=fitz.Matrix(dpi , dpi))
 
     # Convert the pixmap to a NumPy array
     img_array = np.frombuffer(pix.samples, dtype=np.uint8)
 
     # Reshape the array to match the image dimensions
     img_array = img_array.reshape((pix.height, pix.width, pix.n))
-
+    img = pImage.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    tiff_path = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\temp_tiff\test.tiff"
+    img.save(tiff_path, "TIFF")
     # Close the PDF document
     doc.close()
 
