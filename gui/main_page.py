@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=1200, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=200, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
             file_ct += 1
 
         while len(os.listdir(self.temp_tiff_folder)) < file_ct:
@@ -231,11 +231,12 @@ class MainWindow(QMainWindow):
         pass
 
     def plot_data(self, data):
-        data = np.random.rand(10, 10)
-
-        data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
-        custom_colormap_colors, norm = self.create_custom_colormap_with_values( values=data)
-        self.canvas.axes.imshow(data, cmap=custom_colormap_colors)
+        # data = np.random.rand(10, 10)
+        #
+        # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
+        # custom_colormap_colors, norm = self.create_custom_colormap_with_values( values=data)
+        self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm)
+        self.canvas.axes.imshow(data, cmap='Oranges')
 
         self.canvas.draw()
 
@@ -261,10 +262,11 @@ class MainWindow(QMainWindow):
                 except Error as err:
                     show_error_message(err)
                     return
-
+        normalized_data = (values - np.min(values)) / (np.max(values) - np.min(values))
+        cvals.sort()
         norm = plt.Normalize(min(cvals), max(cvals))
-        tuples = list(zip(map(norm,cvals), colors_chose))
-        cmap = LinearSegmentedColormap.from_list('my_colors', tuples)
+
+        cmap = LinearSegmentedColormap.from_list('my_colors', list(zip(norm(cvals), colors_chose)))
 
         # Ensure the values list is one item longer than the colors list
         # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
