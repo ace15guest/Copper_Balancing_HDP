@@ -61,9 +61,4 @@ def find_inkscape():
     return None  # Inkscape executable not found
 
 
-if __name__ == "__main__":
-    inkscape_path = find_inkscape()
-    if inkscape_path:
-        print(f"Inkscape executable found at: {inkscape_path}")
-    else:
-        print("Inkscape executable not found.")
+
