@@ -6,11 +6,17 @@ import numpy as np
 
 def bitmap_to_array(bitmap_path):
     # Open the image file
-    with Image.open(bitmap_path) as img:
-        # Convert the image data to a numpy array
+    print('Converting to array')
+    try:
 
-        gray = img.convert('L') # Convert the image to a gray scale
-        array = np.array(gray)
+        with Image.open(bitmap_path) as img:
+                # Convert the image data to a numpy array
+                gray = img.convert('L') # Convert the image to a gray scale
+                array = np.array(gray)
+                print(array.shape)
+                print('Converted to array')
+    except Exception as e:
+        print(e)
     # os.remove(bitmap_path)
     return array
 

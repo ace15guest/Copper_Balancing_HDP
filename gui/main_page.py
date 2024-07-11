@@ -31,9 +31,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.sigma = 1
-        self.blur_x = 2
-        self.blur_y = 2
+        self.sigma = 10
+        self.blur_x = 5
+        self.blur_y = 5
+        self.dpi = 1000
         self.run_verification = True  # Run the verification on input files
         self.blur = 'gauss'  # The type of blur to apply to the tiff files
 
@@ -139,6 +140,8 @@ class MainWindow(QMainWindow):
 
 
             qt_checkboxes[i].setGeometry(QtCore.QRect(130, y_start + 6 + i * 30, 71, 21))
+            qt_checkboxes[i].setChecked(True)
+            color_labels[i].setText(f"{100 - i * 10}")
             color_labels[i].setGeometry(QtCore.QRect(20, y_start + 4 + i * 30, 51, 21))
             self.color_info[i]['color_button'] = QtWidgets.QPushButton(parent=self)
             self.color_info[i]['color_button'].setGeometry(QtCore.QRect(90, y_start + i * 30, 30, 30))
@@ -184,7 +187,7 @@ class MainWindow(QMainWindow):
         self.gerber_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
 
     def place_plotting_canvas(self):
-        self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=100)
+        self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=self.dpi)
         self.right_layout.addWidget(self.canvas)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         self.right_layout.addWidget(self.toolbar)
@@ -220,7 +223,7 @@ class MainWindow(QMainWindow):
         #     self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
 
         data = multiple_layers(self.arrays)
-
+        data = blur_tiff_gauss(data, self.sigma)
         self.loading_screen.close()
         self.loading_screen.destroy()
 
@@ -234,9 +237,9 @@ class MainWindow(QMainWindow):
         # data = np.random.rand(10, 10)
         #
         # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
-        # custom_colormap_colors, norm = self.create_custom_colormap_with_values( values=data)
+        custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=data)
         self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm)
-        self.canvas.axes.imshow(data, cmap='Oranges')
+        # self.canvas.axes.imshow(data, cmap='Oranges')
 
         self.canvas.draw()
 
@@ -259,7 +262,7 @@ class MainWindow(QMainWindow):
                 try:
                     cvals.append(float(value)/100*max_value)
                     colors_chose.append(name)
-                except Error as err:
+                except Exception as err:
                     show_error_message(err)
                     return
         normalized_data = (values - np.min(values)) / (np.max(values) - np.min(values))
@@ -333,7 +336,7 @@ class MainWindow(QMainWindow):
 
     def start_loading(self, func):
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\Example Gerber')
+            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Example1')
         elif func == self.submit_button_clicked:
             pass
 
