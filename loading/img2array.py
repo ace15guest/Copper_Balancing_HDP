@@ -8,8 +8,10 @@ def bitmap_to_array(bitmap_path):
     # Open the image file
     with Image.open(bitmap_path) as img:
         # Convert the image data to a numpy array
-        array = np.array(img)
-    os.remove(bitmap_path)
+
+        gray = img.convert('L') # Convert the image to a gray scale
+        array = np.array(gray)
+    # os.remove(bitmap_path)
     return array
 
 def open_multiple_bitmaps(folder):
@@ -31,6 +33,8 @@ def array_to_bitmap(array, output_path):
     # Save the image to a file
     img.save(output_path)
 
-
+if __name__ == '__main__':
+    file = r"C:\Users\6J2739897\Documents\projects\Projects4Others\HDP\Copper_Balancing_HDP\Assets\temp_tiff\P13.274x.png"
+    bitmap_to_array(file)
 
 

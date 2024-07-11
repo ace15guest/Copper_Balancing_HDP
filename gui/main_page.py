@@ -20,6 +20,7 @@ from gui.plotting_canvas import MplCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv
 from loading.img2array import bitmap_to_array
+import matplotlib.pyplot as plt
 from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss
 from calculations.multi_layer import multiple_layers
 from file_handling import clear_folder
@@ -129,8 +130,13 @@ class MainWindow(QMainWindow):
             self.color_info[i] = {}
             if i == 0:
                 color_labels[i].setText("100%")
+                qt_checkboxes[i].setChecked(True)
+                qt_checkboxes[i].setEnabled(False)
             elif i == len(color_labels) - 1:
                 color_labels[i].setText("0%")
+                qt_checkboxes[i].setChecked(True)
+                qt_checkboxes[i].setEnabled(False)
+
 
             qt_checkboxes[i].setGeometry(QtCore.QRect(130, y_start + 6 + i * 30, 71, 21))
             color_labels[i].setGeometry(QtCore.QRect(20, y_start + 4 + i * 30, 51, 21))
@@ -138,6 +144,9 @@ class MainWindow(QMainWindow):
             self.color_info[i]['color_button'].setGeometry(QtCore.QRect(90, y_start + i * 30, 30, 30))
             self.color_info[i]['color_button'].clicked.connect(lambda x, i=i: self.on_color_box_clicked(i))
             self.color_info[i]['color_button'].setStyleSheet(f"background-color: {colors[i]}")
+
+            self.color_info[i]['check_box'] = qt_checkboxes[i]
+            self.color_info[i]['entry_box'] = color_labels[i]
             y_loc = y_start + 6 + i * 30
 
         y_loc += 30
@@ -199,21 +208,19 @@ class MainWindow(QMainWindow):
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=100, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=1200, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
             file_ct += 1
 
-        while len(os.listdir(self.temp_pdf_folder)) < file_ct:
+        while len(os.listdir(self.temp_tiff_folder)) < file_ct:
             time.sleep(5)
 
-        # for idx, file in enumerate(os.listdir(self.temp_pdf_folder)):
-        #     self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
+        for idx, file in enumerate(os.listdir(self.temp_tiff_folder)):
+            self.arrays[file] = bitmap_to_array(os.path.join(self.temp_tiff_folder, file))
+        #                                                                                                          self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
         #     self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
 
         data = multiple_layers(self.arrays)
-        min_value = np.min(data)
-        max_value = np.max(data)
-        normalized_data = (data - min_value) * (255 - 0) / (max_value - min_value) + 0
-        normalized_data = normalized_data.astype(np.uint8)
+
         self.loading_screen.close()
         self.loading_screen.destroy()
 
@@ -224,14 +231,15 @@ class MainWindow(QMainWindow):
         pass
 
     def plot_data(self, data):
-        # data = np.random.rand(10, 10)
+        data = np.random.rand(10, 10)
 
-        custom_colormap_colors, norm = self.create_custom_colormap_with_values(['#0000FF', '#00FF00', '#FF0000'], values=data)
-        self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm, interpolation='nearest')
+        data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
+        custom_colormap_colors, norm = self.create_custom_colormap_with_values( values=data)
+        self.canvas.axes.imshow(data, cmap=custom_colormap_colors)
 
         self.canvas.draw()
 
-    def create_custom_colormap_with_values(self, colors, values):
+    def create_custom_colormap_with_values(self, values):
         """
         Creates a custom colormap from a list of colors and their corresponding value ranges.
 
@@ -239,30 +247,35 @@ class MainWindow(QMainWindow):
         :param values: A list of values corresponding to each color.
         :return: A LinearSegmentedColormap object and a Normalize object for mapping values.
         """
+        cvals = []
+        colors_chose = []
+        max_value = max(values.flatten())
+        for color_ in self.color_info:
+            name = self.color_info[color_]['color_button'].palette().window().color().name() # name
+            checked = self.color_info[color_]['check_box'].isChecked()
+            if checked:
+                value = self.color_info[color_]['entry_box'].text().strip('%')
+                try:
+                    cvals.append(float(value)/100*max_value)
+                    colors_chose.append(name)
+                except Error as err:
+                    show_error_message(err)
+                    return
+
+        norm = plt.Normalize(min(cvals), max(cvals))
+        tuples = list(zip(map(norm,cvals), colors_chose))
+        cmap = LinearSegmentedColormap.from_list('my_colors', tuples)
+
         # Ensure the values list is one item longer than the colors list
         # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
 
-        colors_custom = [(0, 'blue'), (.3, 'lightblue'), (.5, 'white'), (.6, 'lightyellow'), (.9, 'red'), (1, 'red')]
         # new_colors = []
         # for i, color in enumerate(colors_custom):
         #     new_colors.append((thresholds[i], color[1]))
         #
         # colors_custom = new_colors
-        cmap = LinearSegmentedColormap.from_list('custom_cmap', colors_custom)
         # Generate a list of 100 colors from the colormap
-        colors = [cmap(i) for i in range(cmap.N)]
 
-        # Convert the colors to hexadecimal
-        hex_colors = [c.to_hex(color) for color in colors]
-
-        # Define the colors and values in hex
-        values = np.linspace(np.min(values.flatten()), np.max(values.flatten()), 100)  # Modify the range to start at 0 and end at the max value
-
-        # Create the custom color map
-        cmap = c.ListedColormap(hex_colors)
-
-        # Normalize the color map
-        norm = c.BoundaryNorm(values, cmap.N)
         return cmap, norm
     # noinspection PyUnboundLocalVariable
     def gerber_folder_button_clicked(self):
@@ -381,6 +394,14 @@ class MainWindow(QMainWindow):
             button.setStyleSheet(f"background-color: {color.name()}")
 
     def recolor_button_clicked(self):
+        if os.path.exists('Assets/colors'):
+            with open('Assets/colors', 'r') as file:
+                color_palettes = json.load(file)
+
+        new_colors = color_palettes[self.color_pallete_options_combobox.currentText()]
+        for color in new_colors:
+            self.color_info[int(color)]['color_button'].setStyleSheet(f"background-color: {new_colors[color]}")
+            pass
         pass
 
     def save_color_palette_button_clicked(self):
