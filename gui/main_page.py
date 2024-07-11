@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_pdf_gerbv(os.path.join(self.folder_name, file), self.temp_pdf_folder, os.path.join(self.temp_pdf_folder, file))
+            gerber_to_pdf_gerbv(os.path.join(self.folder_name, file), self.temp_pdf_folder, os.path.join(self.temp_pdf_folder, file), D=90)
             file_ct += 1
 
         while len(os.listdir(self.temp_pdf_folder)) < file_ct:
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
         pass
 
     def plot_data(self, data):
-        data = np.random.rand(10, 10)
+        # data = np.random.rand(10, 10)
 
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(['#0000FF', '#00FF00', '#FF0000'], values=data)
         self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm, interpolation='nearest')
@@ -318,8 +318,7 @@ class MainWindow(QMainWindow):
 
     def start_loading(self, func):
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder",
-                                                                          directory=r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1")
+            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\Example Gerber')
         elif func == self.submit_button_clicked:
             pass
 
@@ -423,11 +422,14 @@ class MainWindow(QMainWindow):
             return
 
     def load_color_palette(self):
-        with open('Assets/colors', 'r') as file:
-            color_palettes = json.load(file)
-        self.color_pallete_options_combobox.clear()
-        for name in color_palettes.keys():
-            self.color_pallete_options_combobox.addItem(name)
+        try:
+            with open('Assets/colors', 'r') as file:
+                color_palettes = json.load(file)
+            self.color_pallete_options_combobox.clear()
+            for name in color_palettes.keys():
+                self.color_pallete_options_combobox.addItem(name)
+        except:
+            pass
 
 
 def show_error_message(message):
@@ -438,9 +440,4 @@ def show_error_message(message):
     error_dialog.exec()
 
 
-if __name__ == "__main__":
-    import sys
 
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    sys.exit(app.exec())
