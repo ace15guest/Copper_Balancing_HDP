@@ -59,9 +59,8 @@ def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, er
     :param dpi: 0-2000
     :return:
     """
-    Path(save_folder).mkdir(exist_ok=True, parents=True)
     command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}.tif" "{gerb_file}" 2> {error_log_path}.txt'
-    subprocess.Popen(command, shell=True)
+    subprocess.Popen(command)
     return
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """

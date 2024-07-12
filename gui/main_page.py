@@ -33,10 +33,10 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.load_file = False
-        self.sigma = 5
+        self.sigma = 2
         self.blur_x = 5
         self.blur_y = 5
-        self.dpi_val = 400
+        self.dpi_val = 100
         self.run_verification = True  # Run the verification on input files
         self.blur = 'gauss'  # The type of blur to apply to the tiff files
 
@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.central_layout = QVBoxLayout(self.centralwidget)
         self.central_layout.setGeometry(QRect(100, 100, 85, 94))
-        self.add_menu_bar()
+        # self.add_menu_bar()
         # Place the gerber folder input
         self.place_gerber_folder()
         self.place_group_box()
@@ -86,11 +86,11 @@ class MainWindow(QMainWindow):
         self.view_menu = self.menuBar().addMenu("View")
         self.help_menu = self.menuBar().addMenu("Help")
 
-        fileMenu = self.menuBar.addMenu('&File')
-        # Add actions to "File" menu
-        openAction = QAction('&Open', self)
-        openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
-        fileMenu.addAction(openAction)
+        # fileMenu = self.menuBar.addMenu('&File')
+        # # Add actions to "File" menu
+        # openAction = QAction('&Open', self)
+        # openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
+        # fileMenu.addAction(openAction)
 
     def place_group_box(self):
         self.right_groupbox = QGroupBox(self.centralwidget)
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
 
         # Step 1 & 2: Add the button and connect it
         self.checkAllButton = QPushButton('Check All', self)
-        self.checkAllButton.setGeometry(QRect(x, 50, 200, 50))  # Adjust the position as needed
+        self.checkAllButton.setGeometry(QRect(x, 875, 200, 25))  # Adjust the position as needed
         self.checkAllButton.clicked.connect(self.checkAllFiles)
 
         # Step 3 & 4: Implement the method to check all files
@@ -176,11 +176,11 @@ class MainWindow(QMainWindow):
                 color_labels[i].setText("0%")
                 qt_checkboxes[i].setChecked(True)
                 qt_checkboxes[i].setEnabled(False)
-
-
             qt_checkboxes[i].setGeometry(QtCore.QRect(130, y_start + 6 + i * 30, 71, 21))
             qt_checkboxes[i].setChecked(True)
-            color_labels[i].setText(f"{100 - i * 10}")
+            if i !=0 and i !=9:
+
+                color_labels[i].setText(f"{100 - i * 10}")
             color_labels[i].setGeometry(QtCore.QRect(20, y_start + 4 + i * 30, 51, 21))
             self.color_info[i]['color_button'] = QtWidgets.QPushButton(parent=self)
             self.color_info[i]['color_button'].setGeometry(QtCore.QRect(90, y_start + i * 30, 30, 30))
@@ -262,6 +262,13 @@ class MainWindow(QMainWindow):
         #     self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
 
         data = multiple_layers(self.arrays)
+        data = (data * 255.0 / np.max(data))
+
+        if data is None:
+            show_error_message("The Files must be the same size. Please indicate the outline")
+            self.loading_screen.close()
+            self.loading_screen.destroy()
+            return
         data = blur_tiff_gauss(data, self.sigma)
         self.loading_screen.close()
         self.loading_screen.destroy()
@@ -344,6 +351,7 @@ class MainWindow(QMainWindow):
 
             if os.path.exists(os.path.join(self.folder_name, "items_data.json")):
                 self.load_file = True
+            failed_to_verify = []
             while waiting:
                 if self.load_file:
                     try:
@@ -371,7 +379,7 @@ class MainWindow(QMainWindow):
                                 max_width = max(max_width, item.sizeHint().width())
                                 self.items.append(item)
                             else:
-                                print(f"Failed to verify {file[0]}")
+                                failed_to_verify.append(file[0])
                             check_names.remove(file)
 
 
@@ -382,7 +390,13 @@ class MainWindow(QMainWindow):
                             pass
 
                     if len(check_names) == 0:
+
                         waiting = False
+            failed_to_verify = list(set(failed_to_verify))
+            if failed_to_verify:
+                fail_message = '\n'.join(failed_to_verify)
+                fail_message = 'The following files could not be read: \n' + fail_message
+                show_error_message(fail_message, win_title='Warning', icon=QMessageBox.Icon.Warning)
             # for i in range(1):  # Assuming you want to add 5 labels
             #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
             #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
@@ -400,7 +414,7 @@ class MainWindow(QMainWindow):
 
     def start_loading(self, func):
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Short Example')
+            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\GaryExample')
         elif func == self.submit_button_clicked:
             pass
 
@@ -546,11 +560,11 @@ class MainWindow(QMainWindow):
             pass
 
 
-def show_error_message(message):
+def show_error_message(message, win_title="Error", icon=QMessageBox.Icon.Critical):
     error_dialog = QMessageBox()
-    error_dialog.setIcon(QMessageBox.Icon.Critical)
+    error_dialog.setIcon(icon)
     error_dialog.setText(message)
-    error_dialog.setWindowTitle("Error")
+    error_dialog.setWindowTitle(win_title)
     error_dialog.exec()
 
 

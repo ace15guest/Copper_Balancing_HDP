@@ -24,13 +24,14 @@ def check_gerber(file_path: str) -> str:
     start_time = time.time()
     subprocess.Popen(cmd_line, shell=True)
     end_time = time.time()
-    print(f"Time taken to run gerbv: {end_time - start_time}")
+    # TODO: Make Gerbv log
+    # print(f"Time taken to run gerbv: {end_time - start_time}")
 
 
     return log_file_name
 
 def verify_gerber(file_path: str) -> bool:
-    failed_words = ['critical', 'error', 'warning', 'fail', 'invalid', 'not found', 'not supported', 'not recognized',
+    failed_words = ['error', 'fail', 'invalid', 'not found', 'not supported', 'not recognized',
                     'not valid', 'not read', 'not exist']
     with open(file_path, 'r') as file:
         file_contents = file.read().lower()
