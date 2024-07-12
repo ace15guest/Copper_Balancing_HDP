@@ -3,6 +3,7 @@ import time
 import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QRect, pyqtSignal, Qt
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QVBoxLayout, QPushButton, QGroupBox
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 
@@ -31,10 +32,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.sigma = 10
+        self.load_file = False
+        self.sigma = 5
         self.blur_x = 5
         self.blur_y = 5
-        self.dpi = 1000
+        self.dpi_val = 400
         self.run_verification = True  # Run the verification on input files
         self.blur = 'gauss'  # The type of blur to apply to the tiff files
 
@@ -65,6 +67,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.central_layout = QVBoxLayout(self.centralwidget)
         self.central_layout.setGeometry(QRect(100, 100, 85, 94))
+        self.add_menu_bar()
         # Place the gerber folder input
         self.place_gerber_folder()
         self.place_group_box()
@@ -76,6 +79,18 @@ class MainWindow(QMainWindow):
     #####################
     ### Place Widgets ###
     #####################
+    def add_menu_bar(self):
+        self.menuBar().setNativeMenuBar(True)
+        self.file_menu = self.menuBar().addMenu("File")
+        self.edit_menu = self.menuBar().addMenu("Edit")
+        self.view_menu = self.menuBar().addMenu("View")
+        self.help_menu = self.menuBar().addMenu("Help")
+
+        fileMenu = self.menuBar.addMenu('&File')
+        # Add actions to "File" menu
+        openAction = QAction('&Open', self)
+        openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
+        fileMenu.addAction(openAction)
 
     def place_group_box(self):
         self.right_groupbox = QGroupBox(self.centralwidget)
@@ -88,14 +103,28 @@ class MainWindow(QMainWindow):
         self.file_scrollArea = QScrollArea(self.centralwidget)
         self.file_scrollArea.setGeometry(QRect(250, 80, 200, 601))
         self.file_scrollArea.setWidgetResizable(True)
-        self.file_scrollArea.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOn)  # Set horizontal scroll bar
+        self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
         self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.file_scrollAreaWidgetContents = QWidget()
         self.file_scrollArea.setWidget(self.file_scrollAreaWidgetContents)
         self.scroll_areaLayout = QVBoxLayout(self.file_scrollAreaWidgetContents)
-        self.file_scrollAreaWidgetContents.setLayout(self.scroll_areaLayout)
-        self.file_scrollArea.horizontalScrollBar().setMaximum(5000)
+
+        # Adding labels with long text
+        # for i in range(5):  # Assuming you want to add 5 labels
+        #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
+        #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
+        #     self.scroll_areaLayout.addWidget(label)
+    # def place_scroll_widget(self):
+    #     self.file_scrollArea = QScrollArea(self.centralwidget)
+    #     self.file_scrollArea.setGeometry(QRect(250, 80, 200, 601))
+    #     self.file_scrollArea.setWidgetResizable(True)
+    #     self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
+    #     self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    #     self.file_scrollAreaWidgetContents = QWidget()
+    #     self.file_scrollArea.setWidget(self.file_scrollAreaWidgetContents)
+    #     self.scroll_areaLayout = QVBoxLayout(self.file_scrollAreaWidgetContents)
+    #     # self.file_scrollAreaWidgetContents.setLayout(self.scroll_areaLayout)
+    #     # self.file_scrollArea.horizontalScrollBar().setMaximum(5000)
 
     def place_buttons_below_scroll(self):
         x = 250
@@ -114,6 +143,16 @@ class MainWindow(QMainWindow):
         self.submit_button = QPushButton('Submit', self)
         self.submit_button.clicked.connect(lambda x: self.start_loading(self.submit_button_clicked))
         self.submit_button.setGeometry(QRect(x, 830, 200, 50))
+
+        # Step 1 & 2: Add the button and connect it
+        self.checkAllButton = QPushButton('Check All', self)
+        self.checkAllButton.setGeometry(QRect(x, 50, 200, 50))  # Adjust the position as needed
+        self.checkAllButton.clicked.connect(self.checkAllFiles)
+
+        # Step 3 & 4: Implement the method to check all files
+    def checkAllFiles(self):
+        for item in self.items:
+            item.checkBox.setChecked(True)
 
     def place_color_buttons(self):
         self.color_info = {}
@@ -187,7 +226,7 @@ class MainWindow(QMainWindow):
         self.gerber_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
 
     def place_plotting_canvas(self):
-        self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=self.dpi)
+        self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=50)
         self.right_layout.addWidget(self.canvas)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         self.right_layout.addWidget(self.toolbar)
@@ -211,7 +250,7 @@ class MainWindow(QMainWindow):
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=200, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
             file_ct += 1
 
         while len(os.listdir(self.temp_tiff_folder)) < file_ct:
@@ -268,7 +307,7 @@ class MainWindow(QMainWindow):
         normalized_data = (values - np.min(values)) / (np.max(values) - np.min(values))
         cvals.sort()
         norm = plt.Normalize(min(cvals), max(cvals))
-
+        colors_chose.reverse()
         cmap = LinearSegmentedColormap.from_list('my_colors', list(zip(norm(cvals), colors_chose)))
 
         # Ensure the values list is one item longer than the colors list
@@ -302,29 +341,54 @@ class MainWindow(QMainWindow):
                 self.loading_screen.set_progress(idx, f"Please Wait Loading Files... {i}%")
 
             waiting = True
+
+            if os.path.exists(os.path.join(self.folder_name, "items_data.json")):
+                self.load_file = True
             while waiting:
-                for idx, file in enumerate(check_names):
+                if self.load_file:
                     try:
-                        if verify_gerber(file[0]):
-                            item = scroll.ItemWidget(f"{file[1]}")
+                        files_info = self.read_and_sort_json_by_index(os.path.join(self.folder_name, "items_data.json"))
+                        for item in files_info:
+                            item = scroll.ItemWidget(item['file_name'], self.file_scrollAreaWidgetContents)
                             self.scroll_areaLayout.addWidget(item)
                             item.checkBox.stateChanged.connect(lambda state, it=item: self.selectItem(it))
                             max_width = max(max_width, item.sizeHint().width())
                             self.items.append(item)
-                        else:
-                            print(f"Failed to verify {file[0]}")
-                        check_names.remove(file)
-                        self.loading_screen.set_progress(self.loading_screen.progressBar.value() + idx,
-                                                         f"Verifying Files... {file[1]}%")
-
-                    except:
                         pass
+                        waiting = False
+                    except:
+                        show_error_message("The file items_data.json is corrupted. The file will be deleted. The files will be reloaded in the order they are in the folder.")
+                        os.remove(os.path.join(self.folder_name, "items_data.json"))
+                        self.load_file = False
+                elif not self.load_file:
 
-                if len(check_names) == 0:
-                    waiting = False
+                    for idx, file in enumerate(check_names):
+                        try:
+                            if verify_gerber(file[0]):
+                                item = scroll.ItemWidget(f"{file[1]}", self.file_scrollAreaWidgetContents)
+                                self.scroll_areaLayout.addWidget(item)
+                                item.checkBox.stateChanged.connect(lambda state, it=item: self.selectItem(it))
+                                max_width = max(max_width, item.sizeHint().width())
+                                self.items.append(item)
+                            else:
+                                print(f"Failed to verify {file[0]}")
+                            check_names.remove(file)
 
+
+                            self.loading_screen.set_progress(self.loading_screen.progressBar.value() + idx,
+                                                             f"Verifying Files... {file[1]}%")
+
+                        except:
+                            pass
+
+                    if len(check_names) == 0:
+                        waiting = False
+            # for i in range(1):  # Assuming you want to add 5 labels
+            #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
+            #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
+            #     self.scroll_areaLayout.addWidget(label)
             # Set the maximum value of the horizontal scroll bar
-            self.file_scrollArea.horizontalScrollBar().setMaximum(max_width + 100)
+            # self.file_scrollArea.horizontalScrollBar().setMaximum(max_width + 100)
         self.loading_screen.close()
         self.loading_screen.destroy()
 
@@ -336,7 +400,7 @@ class MainWindow(QMainWindow):
 
     def start_loading(self, func):
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Example1')
+            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Short Example')
         elif func == self.submit_button_clicked:
             pass
 
@@ -388,8 +452,32 @@ class MainWindow(QMainWindow):
             self.scroll_areaLayout.addWidget(item)
 
     def save_folder_order(self):
+        items_data = []
         for idx, item in enumerate(self.items):
-            print(f"{idx + 1}: {item.checkBox.text(), item.comboBox.currentText()}")
+
+            file_path = os.path.join(self.folder_name, item.checkBox.text())
+            if os.path.isfile(file_path):
+                # Assuming the Cu weight is part of the file name, e.g., "file_name_CuWeight.txt"
+                # You might need to adjust this logic depending on how the Cu weight is stored
+                cu_weight = item.comboBox.currentText()   # Replace this with actual extraction logic
+                items_data.append({"index": idx, "file_path": file_path, "file_name": item.checkBox.text(),"cu_weight": cu_weight})
+        output_json_path = os.path.join(self.folder_name, "items_data.json")
+        with open(output_json_path, 'w') as json_file:
+            json.dump(items_data, json_file, indent=4)
+            # print(f"{idx + 1}: {item.checkBox.text(), item.comboBox.currentText()}")
+
+    def read_and_sort_json_by_index(self, json_file_path):
+        # Open and read the JSON file
+        with open(json_file_path, 'r') as file:
+            data = json.load(file)
+
+        # Sort the list of dictionaries by the 'index' key
+        sorted_data = sorted(data, key=lambda x: x['index'])
+
+        # Return the sorted list
+        return sorted_data
+
+
 
     def on_color_box_clicked(self, i):
         button = self.color_info[i]['color_button']

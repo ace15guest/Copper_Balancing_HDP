@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QHBoxLayout, QCheckBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QHBoxLayout, QCheckBox, QSizePolicy
 from PyQt6.QtGui import QDrag, QPixmap
 from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
 from PyQt6.QtGui import QCursor, QPalette, QColor
@@ -19,10 +19,15 @@ class ItemWidget(QWidget):
         self.comboBox.addItem("2 oz")
         self.comboBox.addItem("3 oz")
         self.layout.addWidget(self.comboBox)
+        self.comboBox.setFixedSize(50, 25)
 
         self.checkBox = QCheckBox(text, self)
-        self.checkBox.setFixedSize(100, 15)
-        self.layout.addWidget(self.checkBox)
+
+        self.checkBox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.layout.addWidget(self.checkBox, stretch=1)
+
+        # self.checkBox.setFixedSize(100, 15)
+        # self.layout.addWidget(self.checkBox)
         self.setStyleSheet("QCheckBox::indicator:unchecked { background: black; }")
 
     def set_highlight(self, highlight):
