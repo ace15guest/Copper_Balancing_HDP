@@ -13,6 +13,12 @@ class ItemWidget(QWidget):
         super().__init__(parent)
         self.layout = QHBoxLayout(self)
         self.text = text
+
+        # Create a new check box and add it to the layout before the combo box
+        self.inverted_layer = QCheckBox(self)
+        self.layout.addWidget(self.inverted_layer)
+        self.inverted_layer.setToolTip("Check this layer if the layer is inverted")
+
         # Create a combo box
         self.comboBox = QComboBox(self)
         self.comboBox.addItem("1 oz")
@@ -21,13 +27,14 @@ class ItemWidget(QWidget):
         self.layout.addWidget(self.comboBox)
         self.comboBox.setFixedSize(50, 25)
 
-        self.checkBox = QCheckBox(text, self)
+        self.selected_layer = QCheckBox(text, self)
 
-        self.checkBox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.layout.addWidget(self.checkBox, stretch=1)
+        self.selected_layer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.layout.addWidget(self.selected_layer)
+        self.selected_layer.setToolTip("Check this layer if you want to use this layer in the calculations")
 
-        # self.checkBox.setFixedSize(100, 15)
-        # self.layout.addWidget(self.checkBox)
+        # self.selected_layer.setFixedSize(100, 15)
+        # self.layout.addWidget(self.selected_layer)
         self.setStyleSheet("QCheckBox::indicator:unchecked { background: black; }")
 
     def set_highlight(self, highlight):

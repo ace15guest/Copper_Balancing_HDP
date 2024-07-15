@@ -51,7 +51,7 @@ def gerber_to_274x(file_path, save_path):
     subprocess.Popen(command)
     return
 
-def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log"):
+def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log", outline_file=None):
     """
 
     :param gerb_file:
@@ -59,9 +59,13 @@ def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, er
     :param dpi: 0-2000
     :return:
     """
-    command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}.tif" "{gerb_file}" 2> {error_log_path}.txt'
+    save_path = f"{save_path}.tif"
+    if outline_file is None:
+        command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}" "{gerb_file}" 2> {error_log_path}.txt'
+    else:
+        command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}" "{gerb_file}" "{outline_file}" 2> {error_log_path}.txt'
     subprocess.Popen(command)
-    return
+    return save_path
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
 
@@ -109,15 +113,23 @@ def array_to_bitmap(array, output_path):
     # Save the image to a file
     img.save("out.bmp")
 
+def check_tiff_dimensions(folder_path):
+    dimensions = None
+    all_same_size = True
 
-# name = "l19_plane_1oz"
-# gerber_odb_in = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.gdo"
-# gerber_274x = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.274x"
-# svg_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.svg"
-# tiff_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}.tiff"
-# pdf_path = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Example1\{name}"
-# gerber_to_274x(gerber_odb_in, gerber_274x)
-# gerber_to_pdf_gerbv(gerber_274x, pdf_path, D=100)
-# pdf_page_to_array(pdf_path, 0, dpi=200)
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith('.tif'):  # Ensure we're only checking TIFF files
+            file_path = os.path.join(folder_path, file_name)
+            with pImage.open(file_path) as img:
+                if dimensions is None:
+                    dimensions = img.size  # Set the initial dimensions to compare against
+                elif img.size != dimensions:
+                    all_same_size = False
+                    print(f"File {file_name} has different dimensions: {img.size} compared to the initial {dimensions}")
+                    break  # Exit the loop early as we've found an inconsistency
 
-# svg_to_tiff(svg_path, tiff_path, width=100, height=100)
+    if all_same_size:
+        return True
+    else:
+        return False
+

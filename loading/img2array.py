@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 
 
-def bitmap_to_array(bitmap_path, ):
+def bitmap_to_array(bitmap_path, inverted=False):
     # Open the image file
     print('Converting to array')
     array = None
@@ -21,7 +21,11 @@ def bitmap_to_array(bitmap_path, ):
     except Exception as e:
         print(e)
     # os.remove(bitmap_path)
-    array = -(array * 255.0 / np.max(array))+255
+    if inverted:
+        array = -(array * 255.0 / np.max(array))+255
+    else:
+        array = (array * 255.0 / np.max(array))
+
     return array
 
 def open_multiple_bitmaps(folder):

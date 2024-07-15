@@ -6,7 +6,7 @@ from PyQt6.QtCore import QRect, pyqtSignal, Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QVBoxLayout, QPushButton, QGroupBox
 from matplotlib.colors import LinearSegmentedColormap, Normalize
-
+from PyQt6.QtWidgets import QSizePolicy
 from gui.loading_bar import LoadingScreen
 from gui import scroll
 from loading.gerber_load import check_gerber, verify_gerber
@@ -19,12 +19,13 @@ from PyQt6.QtWidgets import QMessageBox
 from gui.colorbar import BlendedColorBar
 from gui.plotting_canvas import MplCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
-from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv
+from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv, check_tiff_dimensions
 from loading.img2array import bitmap_to_array
 import matplotlib.pyplot as plt
 from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss
 from calculations.multi_layer import multiple_layers
 from file_handling import clear_folder
+
 
 class MainWindow(QMainWindow):
     swap = pyqtSignal(str, str)
@@ -52,19 +53,31 @@ class MainWindow(QMainWindow):
         clear_folder(self.temp_tiff_folder)
         clear_folder(self.temp_pdf_folder)
 
-
         self.items = []
 
         self.setupUi()
 
         self.show()
 
-
     def setupUi(self):
         self.setObjectName("MainWindow")
         self.resize(1605, 900)
         self.centralwidget = QWidget(self)
-        self.setCentralWidget(self.centralwidget)
+
+        # Create a scroll area and set its widget to the central widget
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setWidgetResizable(True)  # Make the scroll area resizable
+        self.scrollArea.setWidget(self.centralwidget)  # Set the central widget as the scroll area's widget
+
+        # Set the scroll area as the central widget of the main window
+        self.setCentralWidget(self.scrollArea)
+
+        # Set scroll policies
+        self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+
+        # self.setCentralWidget(self.centralwidget)
         self.central_layout = QVBoxLayout(self.centralwidget)
         self.central_layout.setGeometry(QRect(100, 100, 85, 94))
         # self.add_menu_bar()
@@ -101,7 +114,7 @@ class MainWindow(QMainWindow):
 
     def place_scroll_widget(self):
         self.file_scrollArea = QScrollArea(self.centralwidget)
-        self.file_scrollArea.setGeometry(QRect(250, 80, 200, 601))
+        self.file_scrollArea.setGeometry(QRect(205, 50, 290, 600))
         self.file_scrollArea.setWidgetResizable(True)
         self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
         self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -114,6 +127,7 @@ class MainWindow(QMainWindow):
         #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
         #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
         #     self.scroll_areaLayout.addWidget(label)
+
     # def place_scroll_widget(self):
     #     self.file_scrollArea = QScrollArea(self.centralwidget)
     #     self.file_scrollArea.setGeometry(QRect(250, 80, 200, 601))
@@ -150,9 +164,10 @@ class MainWindow(QMainWindow):
         self.checkAllButton.clicked.connect(self.checkAllFiles)
 
         # Step 3 & 4: Implement the method to check all files
+
     def checkAllFiles(self):
         for item in self.items:
-            item.checkBox.setChecked(True)
+            item.selected_layer.setChecked(True)
 
     def place_color_buttons(self):
         self.color_info = {}
@@ -178,8 +193,7 @@ class MainWindow(QMainWindow):
                 qt_checkboxes[i].setEnabled(False)
             qt_checkboxes[i].setGeometry(QtCore.QRect(130, y_start + 6 + i * 30, 71, 21))
             qt_checkboxes[i].setChecked(True)
-            if i !=0 and i !=9:
-
+            if i != 0 and i != 9:
                 color_labels[i].setText(f"{100 - i * 10}")
             color_labels[i].setGeometry(QtCore.QRect(20, y_start + 4 + i * 30, 51, 21))
             self.color_info[i]['color_button'] = QtWidgets.QPushButton(parent=self)
@@ -229,62 +243,86 @@ class MainWindow(QMainWindow):
         self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=50)
         self.right_layout.addWidget(self.canvas)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
+
+        self.toolbar.setMovable(True)  # Make the toolbar movable
+        # self.toolbar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
         self.right_layout.addWidget(self.toolbar)
 
     ######################
     ### Button Actions ###
     ######################
 
-    def submit_button_clicked(self):
-        self.files_chosen = []
+    def submit_button_clicked(self, outline_file=None):
+        self.files_chosen = {}
+        self.files_inversed_tracking = {}
+
         for item in self.items:
-            if item.checkBox.isChecked():
-                self.files_chosen.append(item.checkBox.text())
+            if item.selected_layer.isChecked():
+                self.files_chosen[item.selected_layer.text()] = {}
+                self.files_chosen[item.selected_layer.text()]['Cu Weight'] = item.comboBox.currentText()
+                self.files_chosen[item.selected_layer.text()]['Inverted'] = item.inverted_layer.isChecked()
         self.loading_screen.progressBar.setMaximum(len(self.files_chosen))
 
         self.loading_data = {}
         self.data_paths_to_convert = {}
         self.arrays = {}
 
+
         file_ct = 0
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, os.path.join(self.temp_tiff_folder, file), dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file))
+            tiff_name = os.path.join(self.temp_tiff_folder, file)
+
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file), outline_file=outline_file)
             file_ct += 1
 
         while len(os.listdir(self.temp_tiff_folder)) < file_ct:
             time.sleep(5)
 
-        for idx, file in enumerate(os.listdir(self.temp_tiff_folder)):
-            self.arrays[file] = bitmap_to_array(os.path.join(self.temp_tiff_folder, file))
-        #                                                                                                          self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-        #     self.arrays[file] = pdf_page_to_array(os.path.join(self.temp_pdf_folder, file), 0, 20)
-
-        data = multiple_layers(self.arrays)
-        data = (data * 255.0 / np.max(data))
-
-        if data is None:
-            show_error_message("The Files must be the same size. Please indicate the outline")
+        all_same_size = check_tiff_dimensions(self.temp_tiff_folder)
+        if not all_same_size:
             self.loading_screen.close()
             self.loading_screen.destroy()
+            show_error_message("The Files must be the same size. Please indicate the outline file")
+            select_file = QtWidgets.QFileDialog.getOpenFileName(self.centralwidget, "Select Outline File", directory=fr'{os.getcwd()}\Assets\gerbers\GaryExample')
+            if select_file[0] == "":
+                return
+            outline_file = select_file[0]
+            for file in os.listdir(self.temp_tiff_folder):
+                os.remove(os.path.join(self.temp_tiff_folder, file))
+            self.submit_button_clicked(outline_file)
             return
+
+        for idx, file in enumerate(os.listdir(self.temp_tiff_folder)):
+            inverted = self.files_chosen[file.replace('.tif', '')]['Inverted']
+            self.arrays[file] = bitmap_to_array(os.path.join(self.temp_tiff_folder, file), inverted)
+            self.loading_screen.set_progress(idx, f"Converting to array... {file}")
+
+
+
+        data = multiple_layers(self.arrays)
+
+
         data = blur_tiff_gauss(data, self.sigma)
+
+        data = (data * 255.0 / np.max(data))
+
         self.loading_screen.close()
         self.loading_screen.destroy()
-
-        self.plot_data(data)
-            # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
-
+        self.current_data = data
+        self.plot_data()
+        # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
 
         pass
 
-    def plot_data(self, data):
+    def plot_data(self):
         # data = np.random.rand(10, 10)
         #
         # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
-        custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=data)
-        self.canvas.axes.imshow(data, cmap=custom_colormap_colors, norm=norm)
+        custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
+        self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
         # self.canvas.axes.imshow(data, cmap='Oranges')
 
         self.canvas.draw()
@@ -301,12 +339,12 @@ class MainWindow(QMainWindow):
         colors_chose = []
         max_value = max(values.flatten())
         for color_ in self.color_info:
-            name = self.color_info[color_]['color_button'].palette().window().color().name() # name
+            name = self.color_info[color_]['color_button'].palette().window().color().name()  # name
             checked = self.color_info[color_]['check_box'].isChecked()
             if checked:
                 value = self.color_info[color_]['entry_box'].text().strip('%')
                 try:
-                    cvals.append(float(value)/100*max_value)
+                    cvals.append(float(value) / 100 * max_value)
                     colors_chose.append(name)
                 except Exception as err:
                     show_error_message(err)
@@ -328,6 +366,7 @@ class MainWindow(QMainWindow):
         # Generate a list of 100 colors from the colormap
 
         return cmap, norm
+
     # noinspection PyUnboundLocalVariable
     def gerber_folder_button_clicked(self):
         # options |= QtWidgets.QFileDialog.DontUseNativeDialog
@@ -359,7 +398,7 @@ class MainWindow(QMainWindow):
                         for item in files_info:
                             item = scroll.ItemWidget(item['file_name'], self.file_scrollAreaWidgetContents)
                             self.scroll_areaLayout.addWidget(item)
-                            item.checkBox.stateChanged.connect(lambda state, it=item: self.selectItem(it))
+                            item.selected_layer.stateChanged.connect(lambda state, it=item: self.selectItem(it))
                             max_width = max(max_width, item.sizeHint().width())
                             self.items.append(item)
                         pass
@@ -375,13 +414,12 @@ class MainWindow(QMainWindow):
                             if verify_gerber(file[0]):
                                 item = scroll.ItemWidget(f"{file[1]}", self.file_scrollAreaWidgetContents)
                                 self.scroll_areaLayout.addWidget(item)
-                                item.checkBox.stateChanged.connect(lambda state, it=item: self.selectItem(it))
+                                item.selected_layer.stateChanged.connect(lambda state, it=item: self.selectItem(it))
                                 max_width = max(max_width, item.sizeHint().width())
                                 self.items.append(item)
                             else:
                                 failed_to_verify.append(file[0])
                             check_names.remove(file)
-
 
                             self.loading_screen.set_progress(self.loading_screen.progressBar.value() + idx,
                                                              f"Verifying Files... {file[1]}%")
@@ -390,7 +428,6 @@ class MainWindow(QMainWindow):
                             pass
 
                     if len(check_names) == 0:
-
                         waiting = False
             failed_to_verify = list(set(failed_to_verify))
             if failed_to_verify:
@@ -469,16 +506,16 @@ class MainWindow(QMainWindow):
         items_data = []
         for idx, item in enumerate(self.items):
 
-            file_path = os.path.join(self.folder_name, item.checkBox.text())
+            file_path = os.path.join(self.folder_name, item.selected_layer.text())
             if os.path.isfile(file_path):
                 # Assuming the Cu weight is part of the file name, e.g., "file_name_CuWeight.txt"
                 # You might need to adjust this logic depending on how the Cu weight is stored
-                cu_weight = item.comboBox.currentText()   # Replace this with actual extraction logic
-                items_data.append({"index": idx, "file_path": file_path, "file_name": item.checkBox.text(),"cu_weight": cu_weight})
+                cu_weight = item.comboBox.currentText()  # Replace this with actual extraction logic
+                items_data.append({"index": idx, "file_path": file_path, "file_name": item.selected_layer.text(), "cu_weight": cu_weight})
         output_json_path = os.path.join(self.folder_name, "items_data.json")
         with open(output_json_path, 'w') as json_file:
             json.dump(items_data, json_file, indent=4)
-            # print(f"{idx + 1}: {item.checkBox.text(), item.comboBox.currentText()}")
+            # print(f"{idx + 1}: {item.selected_layer.text(), item.comboBox.currentText()}")
 
     def read_and_sort_json_by_index(self, json_file_path):
         # Open and read the JSON file
@@ -490,8 +527,6 @@ class MainWindow(QMainWindow):
 
         # Return the sorted list
         return sorted_data
-
-
 
     def on_color_box_clicked(self, i):
         button = self.color_info[i]['color_button']
@@ -508,8 +543,11 @@ class MainWindow(QMainWindow):
         new_colors = color_palettes[self.color_pallete_options_combobox.currentText()]
         for color in new_colors:
             self.color_info[int(color)]['color_button'].setStyleSheet(f"background-color: {new_colors[color]}")
+        try:
+            self.plot_data()
+
+        except AttributeError:
             pass
-        pass
 
     def save_color_palette_button_clicked(self):
         if self.newname_entry.text() == "":
@@ -566,6 +604,4 @@ def show_error_message(message, win_title="Error", icon=QMessageBox.Icon.Critica
     error_dialog.setText(message)
     error_dialog.setWindowTitle(win_title)
     error_dialog.exec()
-
-
 
