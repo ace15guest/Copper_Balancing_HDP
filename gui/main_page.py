@@ -34,13 +34,13 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.load_file = False
-        self.sigma = 2
+        self.sigma = 9
         self.blur_x = 5
         self.blur_y = 5
-        self.dpi_val = 100
+        self.dpi_val = 200
         self.run_verification = True  # Run the verification on input files
         self.blur = 'gauss'  # The type of blur to apply to the tiff files
-
+        self.folder_name = ''
         self.temp_folder = "Assets/temp"
         self.temp_svg_folder = "Assets/temp_svg"
         self.temp_error_folder = "Assets/temp_error"
@@ -141,33 +141,76 @@ class MainWindow(QMainWindow):
     #     # self.file_scrollArea.horizontalScrollBar().setMaximum(5000)
 
     def place_buttons_below_scroll(self):
-        x = 250
+        x = 205
+        x_size = 290
+        y_size = 25
+
+        y_orig = 650
+
         self.moveUpButton = QPushButton('Move Up', self)
         self.moveUpButton.clicked.connect(self.moveSelectedItemUp)
-        self.moveUpButton.setGeometry(QRect(x, 680, 200, 50))
+        self.moveUpButton.setGeometry(QRect(x, y_orig, x_size, y_size))
 
         self.moveDownButton = QPushButton('Move Down', self)
         self.moveDownButton.clicked.connect(self.moveSelectedItemDown)
-        self.moveDownButton.setGeometry(QRect(x, 730, 200, 50))
+        self.moveDownButton.setGeometry(QRect(x, y_orig+y_size, x_size, y_size))
 
         self.moveDownButton = QPushButton('Save Order', self)
         self.moveDownButton.clicked.connect(self.save_folder_order)
-        self.moveDownButton.setGeometry(QRect(x, 780, 200, 50))
+        self.moveDownButton.setGeometry(QRect(x, y_orig+y_size*2, x_size, y_size))
+
+        self.moveDownButton = QPushButton('Delete Order', self)
+        self.moveDownButton.clicked.connect(self.delete_folder_order)
+        self.moveDownButton.setGeometry(QRect(x, y_orig + y_size * 3, x_size, y_size))
 
         self.submit_button = QPushButton('Submit', self)
         self.submit_button.clicked.connect(lambda x: self.start_loading(self.submit_button_clicked))
-        self.submit_button.setGeometry(QRect(x, 830, 200, 50))
+        self.submit_button.setGeometry(QRect(x, y_orig+y_size*4, x_size, y_size))
 
         # Step 1 & 2: Add the button and connect it
-        self.checkAllButton = QPushButton('Check All', self)
-        self.checkAllButton.setGeometry(QRect(x, 875, 200, 25))  # Adjust the position as needed
+        self.checkAllButton = QPushButton('Check All Files', self)
+        self.checkAllButton.setGeometry(QRect(x, y_orig+y_size*5, x_size, y_size))  # Adjust the position as needed
         self.checkAllButton.clicked.connect(self.checkAllFiles)
 
+        self.checkAllButton = QPushButton('Deselect All Files', self)
+        self.checkAllButton.setGeometry(QRect(x, y_orig + y_size * 6, x_size, y_size))  # Adjust the position as needed
+        self.checkAllButton.clicked.connect(self.deselectAllFiles)
+
+        self.checkAllButton = QPushButton('Check All Inverse', self)
+        self.checkAllButton.setGeometry(QRect(x, y_orig + y_size * 7, x_size, y_size))  # Adjust the position as needed
+        self.checkAllButton.clicked.connect(self.checkAllInverse)
+
+        self.checkAllButton = QPushButton('Deselect All Inverse', self)
+        self.checkAllButton.setGeometry(QRect(x, y_orig + y_size * 8, x_size, y_size))  # Adjust the position as needed
+        self.checkAllButton.clicked.connect(self.deselectAllInverse)
+
         # Step 3 & 4: Implement the method to check all files
+    def delete_folder_order(self):
+        if self.folder_name == '':
+            show_error_message('Please select a gerber file')
+            return
+        elif os.path.exists(os.path.join(self.folder_name, "items_data.json")):
+            os.remove(os.path.join(self.folder_name, "items_data.json"))
+            return
+        else:
+            show_error_message("No order file exists. Please select 'Save Order' button to create one.")
+            return
 
     def checkAllFiles(self):
         for item in self.items:
             item.selected_layer.setChecked(True)
+
+    def deselectAllFiles(self):
+        for item in self.items:
+            item.selected_layer.setChecked(False)
+
+    def checkAllInverse(self):
+        for item in self.items:
+            item.inverted_layer.setChecked(True)
+
+    def deselectAllInverse(self):
+        for item in self.items:
+            item.inverted_layer.setChecked(False)
 
     def place_color_buttons(self):
         self.color_info = {}
@@ -256,7 +299,8 @@ class MainWindow(QMainWindow):
     def submit_button_clicked(self, outline_file=None):
         self.files_chosen = {}
         self.files_inversed_tracking = {}
-
+        if not self.items:
+            return
         for item in self.items:
             if item.selected_layer.isChecked():
                 self.files_chosen[item.selected_layer.text()] = {}
@@ -286,7 +330,7 @@ class MainWindow(QMainWindow):
             self.loading_screen.close()
             self.loading_screen.destroy()
             show_error_message("The Files must be the same size. Please indicate the outline file")
-            select_file = QtWidgets.QFileDialog.getOpenFileName(self.centralwidget, "Select Outline File", directory=fr'{os.getcwd()}\Assets\gerbers\GaryExample')
+            select_file = QtWidgets.QFileDialog.getOpenFileName(self.centralwidget, "Select Outline File", directory=fr'{os.getcwd()}\Assets\gerbers\Scream')
             if select_file[0] == "":
                 return
             outline_file = select_file[0]
@@ -395,15 +439,22 @@ class MainWindow(QMainWindow):
                 if self.load_file:
                     try:
                         files_info = self.read_and_sort_json_by_index(os.path.join(self.folder_name, "items_data.json"))
-                        for item in files_info:
-                            item = scroll.ItemWidget(item['file_name'], self.file_scrollAreaWidgetContents)
+                        for file_saved in files_info:
+                            item = scroll.ItemWidget(file_saved['file_name'], self.file_scrollAreaWidgetContents)
                             self.scroll_areaLayout.addWidget(item)
+
+                            item.comboBox.setCurrentText(file_saved['cu_weight'])
+
+                            if file_saved['inverted']:
+                                item.inverted_layer.setChecked(True)
+                            if file_saved['selected']:
+                                item.selected_layer.setChecked(True)
                             item.selected_layer.stateChanged.connect(lambda state, it=item: self.selectItem(it))
                             max_width = max(max_width, item.sizeHint().width())
                             self.items.append(item)
                         pass
                         waiting = False
-                    except:
+                    except Exception as error:
                         show_error_message("The file items_data.json is corrupted. The file will be deleted. The files will be reloaded in the order they are in the folder.")
                         os.remove(os.path.join(self.folder_name, "items_data.json"))
                         self.load_file = False
@@ -430,10 +481,7 @@ class MainWindow(QMainWindow):
                     if len(check_names) == 0:
                         waiting = False
             failed_to_verify = list(set(failed_to_verify))
-            if failed_to_verify:
-                fail_message = '\n'.join(failed_to_verify)
-                fail_message = 'The following files could not be read: \n' + fail_message
-                show_error_message(fail_message, win_title='Warning', icon=QMessageBox.Icon.Warning)
+
             # for i in range(1):  # Assuming you want to add 5 labels
             #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
             #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
@@ -442,6 +490,10 @@ class MainWindow(QMainWindow):
             # self.file_scrollArea.horizontalScrollBar().setMaximum(max_width + 100)
         self.loading_screen.close()
         self.loading_screen.destroy()
+        if failed_to_verify:
+            fail_message = '\n'.join(failed_to_verify)
+            fail_message = 'The following files could not be read: \n' + fail_message
+            show_error_message(fail_message, win_title='Warning', icon=QMessageBox.Icon.Warning)
 
     def selectItem(self, item):
         if self.selected_item is not None:
@@ -451,7 +503,7 @@ class MainWindow(QMainWindow):
 
     def start_loading(self, func):
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\GaryExample')
+            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Scream')
         elif func == self.submit_button_clicked:
             pass
 
@@ -483,18 +535,25 @@ class MainWindow(QMainWindow):
                 child.widget().deleteLater()
 
     def moveSelectedItemUp(self):
-        if self.selected_item:
-            index = self.items.index(self.selected_item)
-            if index > 0:
-                self.items[index], self.items[index - 1] = self.items[index - 1], self.items[index]
-                self.updateLayout()
+        try:
+
+            if self.selected_item:
+                index = self.items.index(self.selected_item)
+                if index > 0:
+                    self.items[index], self.items[index - 1] = self.items[index - 1], self.items[index]
+                    self.updateLayout()
+        except:
+            pass
 
     def moveSelectedItemDown(self):
-        if self.selected_item:
-            index = self.items.index(self.selected_item)
-            if index < len(self.items) - 1:
-                self.items[index], self.items[index + 1] = self.items[index + 1], self.items[index]
-                self.updateLayout()
+        try:
+            if self.selected_item:
+                index = self.items.index(self.selected_item)
+                if index < len(self.items) - 1:
+                    self.items[index], self.items[index + 1] = self.items[index + 1], self.items[index]
+                    self.updateLayout()
+        except:
+            pass
 
     def updateLayout(self):
         for i in reversed(range(self.scroll_areaLayout.count())):
@@ -504,6 +563,8 @@ class MainWindow(QMainWindow):
 
     def save_folder_order(self):
         items_data = []
+        if not self.items:
+            return
         for idx, item in enumerate(self.items):
 
             file_path = os.path.join(self.folder_name, item.selected_layer.text())
@@ -511,7 +572,9 @@ class MainWindow(QMainWindow):
                 # Assuming the Cu weight is part of the file name, e.g., "file_name_CuWeight.txt"
                 # You might need to adjust this logic depending on how the Cu weight is stored
                 cu_weight = item.comboBox.currentText()  # Replace this with actual extraction logic
-                items_data.append({"index": idx, "file_path": file_path, "file_name": item.selected_layer.text(), "cu_weight": cu_weight})
+                inverted = item.inverted_layer.isChecked()
+                selected = item.selected_layer.isChecked()
+                items_data.append({"index": idx, "file_path": file_path, "file_name": item.selected_layer.text(), "cu_weight": cu_weight, "inverted": inverted, "selected": selected})
         output_json_path = os.path.join(self.folder_name, "items_data.json")
         with open(output_json_path, 'w') as json_file:
             json.dump(items_data, json_file, indent=4)
