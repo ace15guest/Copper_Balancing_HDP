@@ -34,10 +34,10 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.load_file = False
-        self.sigma = 9
+        self.sigma = 2
         self.blur_x = 5
         self.blur_y = 5
-        self.dpi_val = 200
+        self.dpi_val = 400
         self.run_verification = True  # Run the verification on input files
         self.blur = 'gauss'  # The type of blur to apply to the tiff files
         self.folder_name = ''
