@@ -1,34 +1,26 @@
 import unittest
-import os
-from PIL import Image
-from loading.gerber_load import gerber_to_svg, svg_to_tiff
+from unittest.mock import patch, MagicMock
+import subprocess
+from pathlib import Path
+from loading.gerber_load import check_gerber
 
-class TestGerberLoad(unittest.TestCase):
-    def setUp(self):
-        # TODO: Get Example Gerber File
-        self.gerber_path = 'path/to/your/test.gerber'
-        self.svg_path = 'test_output.svg'
-        self.tiff_path = 'test_output.tiff'
+class TestCheckGerber(unittest.TestCase):
+    @patch('loading.gerber_load.subprocess.Popen')
+    @patch('loading.gerber_load.Path')
+    @patch('loading.gerber_load.time.time', side_effect=[100, 105])
+    def test_check_gerber_creates_log_file(self, mock_time, mock_path, mock_popen):
+        # Setup
+        mock_path.return_value.mkdir.return_value = None
+        mock_popen.return_value = MagicMock()
 
-    def tearDown(self):
-        if os.path.exists(self.svg_path):
-            os.remove(self.svg_path)
-        if os.path.exists(self.tiff_path):
-            os.remove(self.tiff_path)
+        # Execute
+        log_file_name = check_gerber(r"C:\path\to\file.gbr")
 
-    def test_gerber_to_svg(self):
-        gerber_to_svg(self.gerber_path, self.svg_path)
-        self.assertTrue(os.path.exists(self.svg_path))
-
-    def test_svg_to_tiff(self):
-        # Assuming that gerber_to_svg works correctly
-        gerber_to_svg(self.gerber_path, self.svg_path)
-        svg_to_tiff(self.svg_path, self.tiff_path)
-        self.assertTrue(os.path.exists(self.tiff_path))
-
-        # Load the image to check if it was saved correctly
-        img = Image.open(self.tiff_path)
-        self.assertEqual(img.format, 'TIFF')
+        # Verify
+        mock_path.assert_called_with(r"Assets\temp")
+        mock_path.return_value.mkdir.assert_called_with(exist_ok=True, parents=True)
+        self.assertEqual(log_file_name, r"Assets\temp\file.gbr.log")
+        mock_popen.assert_called_with('Assets\gerbv\gerbv -x rs274x -o NUL "C:\\path\\to\\file.gbr" 2>"Assets\\temp\\file.gbr.log"', shell=True)
 
 if __name__ == '__main__':
     unittest.main()

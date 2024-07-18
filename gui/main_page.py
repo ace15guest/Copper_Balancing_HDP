@@ -4,7 +4,7 @@ import numpy as np
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QRect, pyqtSignal, Qt
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QVBoxLayout, QPushButton, QGroupBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QScrollArea, QWidget, QVBoxLayout, QPushButton, QGroupBox, QComboBox
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from PyQt6.QtWidgets import QSizePolicy
 from gui.loading_bar import LoadingScreen
@@ -61,7 +61,7 @@ class MainWindow(QMainWindow):
 
     def setupUi(self):
         self.setObjectName("MainWindow")
-        self.resize(1605, 900)
+        self.resize(1605, 940)
         self.centralwidget = QWidget(self)
 
         # Create a scroll area and set its widget to the central widget
@@ -82,6 +82,7 @@ class MainWindow(QMainWindow):
         self.central_layout.setGeometry(QRect(100, 100, 85, 94))
         # self.add_menu_bar()
         # Place the gerber folder input
+        self.add_menu_bar()
         self.place_gerber_folder()
         self.place_group_box()
         self.place_scroll_widget()
@@ -95,15 +96,28 @@ class MainWindow(QMainWindow):
     def add_menu_bar(self):
         self.menuBar().setNativeMenuBar(True)
         self.file_menu = self.menuBar().addMenu("File")
+        self.setup_menu = self.menuBar().addMenu("Setup")
         self.edit_menu = self.menuBar().addMenu("Edit")
         self.view_menu = self.menuBar().addMenu("View")
         self.help_menu = self.menuBar().addMenu("Help")
+
+
+        self.add_drop_down_options()
+        # Create the QAction for showing the dropdown
 
         # fileMenu = self.menuBar.addMenu('&File')
         # # Add actions to "File" menu
         # openAction = QAction('&Open', self)
         # openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
         # fileMenu.addAction(openAction)
+
+    def add_drop_down_options(self):
+        # Check if the dropdown already exists to avoid creating multiple instances
+        self.show_dropdown_action = QAction("Settings", self)
+        self.setup_menu.addAction(self.show_dropdown_action)
+
+        # Connect the action to the method for handling the dropdown
+        # self.show_dropdown_action.triggered.connect(self.show_dropdown)
 
     def place_group_box(self):
         self.right_groupbox = QGroupBox(self.centralwidget)
@@ -578,6 +592,8 @@ class MainWindow(QMainWindow):
         output_json_path = os.path.join(self.folder_name, "items_data.json")
         with open(output_json_path, 'w') as json_file:
             json.dump(items_data, json_file, indent=4)
+
+        show_error_message("Order saved successfully", win_title="Success", icon=QMessageBox.Icon.Information)
             # print(f"{idx + 1}: {item.selected_layer.text(), item.comboBox.currentText()}")
 
     def read_and_sort_json_by_index(self, json_file_path):
