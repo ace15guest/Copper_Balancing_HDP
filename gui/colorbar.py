@@ -9,7 +9,11 @@ class BlendedColorBar(QWidget):
         self.colors = colors
         self.labels = labels
 
+
+
     def paintEvent(self, event):
+
+
         painter = QPainter(self)
         rect = self.rect()
 
@@ -27,9 +31,12 @@ class BlendedColorBar(QWidget):
         label_height = rect.height() / (num_colors - 1)
 
         for i, label in enumerate(self.labels):
-            text_rect = font_metrics.boundingRect(label)
+            print(label)
+            text_rect = font_metrics.boundingRect(str(int(label)))
             text_x = rect.width() - text_rect.width() - 5
             text_y = int(i * label_height + label_height / 2 + text_rect.height() / 4)
             painter.drawText(text_x, text_y, label)
 
         painter.end()
+
+

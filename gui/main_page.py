@@ -47,6 +47,8 @@ class MainWindow(QMainWindow):
         self.temp_tiff_folder = "Assets/temp_tiff"
         self.temp_pdf_folder = "Assets/temp_pdf"
 
+
+
         clear_folder(self.temp_folder)
         clear_folder(self.temp_svg_folder)
         clear_folder(self.temp_error_folder)
@@ -58,6 +60,7 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         self.show()
+
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -75,6 +78,13 @@ class MainWindow(QMainWindow):
         # Set scroll policies
         self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        # colors = ['#0000ff', '#00ffff', '#ffffff', '#ffff00', '#ff0000']
+        # labels = ['0', '25', '50', '75', '100']
+        # self.color_bar = BlendedColorBar(colors, labels, self)
+        # self.color_bar.setGeometry(1550, 100, 40, 750)
+
+
 
 
         # self.setCentralWidget(self.centralwidget)
@@ -110,6 +120,9 @@ class MainWindow(QMainWindow):
         # openAction = QAction('&Open', self)
         # openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
         # fileMenu.addAction(openAction)
+
+
+
 
     def add_drop_down_options(self):
         # Check if the dropdown already exists to avoid creating multiple instances
@@ -371,6 +384,7 @@ class MainWindow(QMainWindow):
         self.loading_screen.destroy()
         self.current_data = data
         self.plot_data()
+
         # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
 
         pass
@@ -380,12 +394,17 @@ class MainWindow(QMainWindow):
         #
         # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
-        self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
+        im = self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
+        if hasattr(self, 'current_color_bar'):
+            self.current_color_bar.remove()
+        self.current_color_bar = self.canvas.figure.colorbar(im, ax=self.canvas.axes, orientation='horizontal', fraction=0.046, pad=0.04)
+
         # self.canvas.axes.imshow(data, cmap='Oranges')
 
         self.canvas.draw()
 
     def create_custom_colormap_with_values(self, values):
+        # self.removeColorBar()
         """
         Creates a custom colormap from a list of colors and their corresponding value ranges.
 
@@ -412,6 +431,22 @@ class MainWindow(QMainWindow):
         norm = plt.Normalize(min(cvals), max(cvals))
         colors_chose.reverse()
         cmap = LinearSegmentedColormap.from_list('my_colors', list(zip(norm(cvals), colors_chose)))
+
+
+
+
+
+        # self.color_bar.labels = cvals
+
+
+
+        # self.color_bar = BlendedColorBar(colors_chose, cvals, self)
+        # self.color_bar.setGeometry(10, 10, 191, 31)
+        # self.central_layout.addWidget(self.color_bar)
+        # self.color_bar.setFixedHeight(30)  # Set fixed height for the color bar
+        # Add the color bar to the layout
+
+
 
         # Ensure the values list is one item longer than the colors list
         # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
