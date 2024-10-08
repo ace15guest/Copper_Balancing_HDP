@@ -122,8 +122,8 @@ def increment_string_by_n(original_string, increment_value):
 
     return new_string
 
-file1 = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\l6_plane_1oz.gdo"
-file2 = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\l15_plane_1oz.gdo"
-file3 = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\layer_stackup.gdo"
+file1 = r"C:\Users\6J2739897\Documents\projects\Projects4Others\HDP\Copper_Balancing_HDP\Assets\gerbers\CAF Coupon No Info\p5"
+file2 = r"C:\Users\6J2739897\Documents\projects\Projects4Others\HDP\Copper_Balancing_HDP\Assets\gerbers\CAF Coupon No Info\p7"
+file3 = r"C:\Users\6J2739897\Documents\projects\Projects4Others\HDP\Copper_Balancing_HDP\Assets\gerbers\CAF Coupon No Info\s04"
 out = find_extrema_points([file1, file2, file3])
-write_bounding_file(out[4], r'C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers', out[:4], top_expand=40, bottom_expand=10, left_expand=10,right_expand=3)
+write_bounding_file(out[4], r'C:\Users\6J2739897\Documents\projects\Projects4Others\HDP\Copper_Balancing_HDP\Assets\gerbers\CAF Coupon No Info', out[:4], top_expand=40, bottom_expand=10, left_expand=10,right_expand=3)

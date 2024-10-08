@@ -25,9 +25,29 @@ def blur_tiff_manual(array, blur_x=2, blur_y=2):
 from scipy.ndimage import gaussian_filter
 
 
-def blur_tiff_gauss(array, sigma=1):
+def blur_tiff_gauss(array: np.array, sigma=1):
     """
     This function blurs the image using a Gaussian filter.
     """
     # TODO: Add thieving option
     return gaussian_filter(array, sigma=sigma)
+
+
+def blur_algo(img_array: np.array, x_subset: int, y_subset: int):
+    """
+    This algorithim employs the idea of only changing the last column
+    """
+    temp_array = None
+
+    for i in range(img_array.shape[0]):
+        for j in range(img_array.shape[1]):
+            try:
+                row_start = i - y_subset if i - y_subset >= 0 else 0
+                row_end = i + y_subset + 1
+                col_start = j - x_subset if j - x_subset >= 0 else 0
+                col_end = j + x_subset + 1
+
+                temp_array = img_array[row_start:row_end, col_start:col_end]
+
+            except:
+                pass
