@@ -47,8 +47,6 @@ class MainWindow(QMainWindow):
         self.temp_tiff_folder = "Assets/temp_tiff"
         self.temp_pdf_folder = "Assets/temp_pdf"
 
-
-
         clear_folder(self.temp_folder)
         clear_folder(self.temp_svg_folder)
         clear_folder(self.temp_error_folder)
@@ -60,7 +58,6 @@ class MainWindow(QMainWindow):
         self.setupUi()
 
         self.show()
-
 
     def setupUi(self):
         self.setObjectName("MainWindow")
@@ -83,9 +80,6 @@ class MainWindow(QMainWindow):
         # labels = ['0', '25', '50', '75', '100']
         # self.color_bar = BlendedColorBar(colors, labels, self)
         # self.color_bar.setGeometry(1550, 100, 40, 750)
-
-
-
 
         # self.setCentralWidget(self.centralwidget)
         self.central_layout = QVBoxLayout(self.centralwidget)
@@ -111,7 +105,6 @@ class MainWindow(QMainWindow):
         self.view_menu = self.menuBar().addMenu("View")
         self.help_menu = self.menuBar().addMenu("Help")
 
-
         self.add_drop_down_options()
         # Create the QAction for showing the dropdown
 
@@ -120,9 +113,6 @@ class MainWindow(QMainWindow):
         # openAction = QAction('&Open', self)
         # openAction.triggered.connect(self.openFile)  # Assuming openFile is a method for opening files
         # fileMenu.addAction(openAction)
-
-
-
 
     def add_drop_down_options(self):
         # Check if the dropdown already exists to avoid creating multiple instances
@@ -180,11 +170,11 @@ class MainWindow(QMainWindow):
 
         self.moveDownButton = QPushButton('Move Down', self)
         self.moveDownButton.clicked.connect(self.moveSelectedItemDown)
-        self.moveDownButton.setGeometry(QRect(x, y_orig+y_size, x_size, y_size))
+        self.moveDownButton.setGeometry(QRect(x, y_orig + y_size, x_size, y_size))
 
         self.moveDownButton = QPushButton('Save Order', self)
         self.moveDownButton.clicked.connect(self.save_folder_order)
-        self.moveDownButton.setGeometry(QRect(x, y_orig+y_size*2, x_size, y_size))
+        self.moveDownButton.setGeometry(QRect(x, y_orig + y_size * 2, x_size, y_size))
 
         self.moveDownButton = QPushButton('Delete Order', self)
         self.moveDownButton.clicked.connect(self.delete_folder_order)
@@ -192,11 +182,11 @@ class MainWindow(QMainWindow):
 
         self.submit_button = QPushButton('Submit', self)
         self.submit_button.clicked.connect(lambda x: self.start_loading(self.submit_button_clicked))
-        self.submit_button.setGeometry(QRect(x, y_orig+y_size*4, x_size, y_size))
+        self.submit_button.setGeometry(QRect(x, y_orig + y_size * 4, x_size, y_size))
 
         # Step 1 & 2: Add the button and connect it
         self.checkAllButton = QPushButton('Check All Files', self)
-        self.checkAllButton.setGeometry(QRect(x, y_orig+y_size*5, x_size, y_size))  # Adjust the position as needed
+        self.checkAllButton.setGeometry(QRect(x, y_orig + y_size * 5, x_size, y_size))  # Adjust the position as needed
         self.checkAllButton.clicked.connect(self.checkAllFiles)
 
         self.checkAllButton = QPushButton('Deselect All Files', self)
@@ -212,6 +202,7 @@ class MainWindow(QMainWindow):
         self.checkAllButton.clicked.connect(self.deselectAllInverse)
 
         # Step 3 & 4: Implement the method to check all files
+
     def delete_folder_order(self):
         if self.folder_name == '':
             show_error_message('Please select a gerber file')
@@ -298,6 +289,17 @@ class MainWindow(QMainWindow):
 
         self.load_color_palette()
 
+    def place_tiff_folder(self):
+        self.tiff_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
+        self.tiff_folder_line_edit.setGeometry(QtCore.QRect(10, 10, 531, 21))
+        self.tiff_folder_line_edit.setObjectName("tiff_folder_line_edit")
+        self.tiff_folder_line_edit.setPlaceholderText("Tiff Folder Path")
+
+        # Place Tiff folder button
+        self.tiff_folder_button = QtWidgets.QPushButton(parent=self.centralwidget, text="Tiff Folder")
+        self.tiff_folder_button.clicked.connect(lambda x: self.start_loading(self.tiff_folder_button_clicked()))
+        self.tiff_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
+
     def place_gerber_folder(self):
         self.gerber_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
         self.gerber_folder_line_edit.setGeometry(QtCore.QRect(10, 10, 531, 21))
@@ -339,14 +341,14 @@ class MainWindow(QMainWindow):
         self.data_paths_to_convert = {}
         self.arrays = {}
 
-
         file_ct = 0
 
         for idx, file in enumerate(self.files_chosen):
             self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
             tiff_name = os.path.join(self.temp_tiff_folder, file)
 
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file), outline_file=outline_file)
+            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file),
+                                outline_file=outline_file)
             file_ct += 1
 
         while len(os.listdir(self.temp_tiff_folder)) < file_ct:
@@ -371,10 +373,7 @@ class MainWindow(QMainWindow):
             self.arrays[file] = bitmap_to_array(os.path.join(self.temp_tiff_folder, file), inverted)
             self.loading_screen.set_progress(idx, f"Converting to array... {file}")
 
-
-
         data = multiple_layers(self.arrays)
-
 
         data = blur_tiff_gauss(data, self.sigma)
 
@@ -432,21 +431,13 @@ class MainWindow(QMainWindow):
         colors_chose.reverse()
         cmap = LinearSegmentedColormap.from_list('my_colors', list(zip(norm(cvals), colors_chose)))
 
-
-
-
-
         # self.color_bar.labels = cvals
-
-
 
         # self.color_bar = BlendedColorBar(colors_chose, cvals, self)
         # self.color_bar.setGeometry(10, 10, 191, 31)
         # self.central_layout.addWidget(self.color_bar)
         # self.color_bar.setFixedHeight(30)  # Set fixed height for the color bar
         # Add the color bar to the layout
-
-
 
         # Ensure the values list is one item longer than the colors list
         # assert len(values) == len(colors) + 1, "Values list must be one item longer than colors list."
@@ -461,6 +452,10 @@ class MainWindow(QMainWindow):
         return cmap, norm
 
     # noinspection PyUnboundLocalVariable
+    def tiff_folder_button_clicked(self):
+        # TODO: make functional
+        return
+
     def gerber_folder_button_clicked(self):
         # options |= QtWidgets.QFileDialog.DontUseNativeDialog
 
@@ -629,7 +624,7 @@ class MainWindow(QMainWindow):
             json.dump(items_data, json_file, indent=4)
 
         show_error_message("Order saved successfully", win_title="Success", icon=QMessageBox.Icon.Information)
-            # print(f"{idx + 1}: {item.selected_layer.text(), item.comboBox.currentText()}")
+        # print(f"{idx + 1}: {item.selected_layer.text(), item.comboBox.currentText()}")
 
     def read_and_sort_json_by_index(self, json_file_path):
         # Open and read the JSON file
@@ -718,4 +713,3 @@ def show_error_message(message, win_title="Error", icon=QMessageBox.Icon.Critica
     error_dialog.setText(message)
     error_dialog.setWindowTitle(win_title)
     error_dialog.exec()
-
