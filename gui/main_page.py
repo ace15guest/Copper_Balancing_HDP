@@ -88,6 +88,7 @@ class MainWindow(QMainWindow):
         # Place the gerber folder input
         self.add_menu_bar()
         self.place_gerber_folder()
+        self.place_tiff_folder()
         self.place_group_box()
         self.place_scroll_widget()
         self.place_color_buttons()
@@ -117,10 +118,15 @@ class MainWindow(QMainWindow):
     def add_drop_down_options(self):
         # Check if the dropdown already exists to avoid creating multiple instances
         self.show_dropdown_action = QAction("Settings", self)
+        self.show_dropdown_action.setStatusTip('Alter application settings')
         self.setup_menu.addAction(self.show_dropdown_action)
 
         # Connect the action to the method for handling the dropdown
-        # self.show_dropdown_action.triggered.connect(self.show_dropdown)
+        self.show_dropdown_action.triggered.connect(self.open_settings)
+
+    def open_settings(self):
+        print("This Opens the settings")
+        return
 
     def place_group_box(self):
         self.right_groupbox = QGroupBox(self.centralwidget)
@@ -131,7 +137,7 @@ class MainWindow(QMainWindow):
 
     def place_scroll_widget(self):
         self.file_scrollArea = QScrollArea(self.centralwidget)
-        self.file_scrollArea.setGeometry(QRect(205, 50, 290, 600))
+        self.file_scrollArea.setGeometry(QRect(205, 50, 290, 565))
         self.file_scrollArea.setWidgetResizable(True)
         self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
         self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -291,14 +297,14 @@ class MainWindow(QMainWindow):
 
     def place_tiff_folder(self):
         self.tiff_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
-        self.tiff_folder_line_edit.setGeometry(QtCore.QRect(10, 10, 531, 21))
+        self.tiff_folder_line_edit.setGeometry(QtCore.QRect(700, 10, 531, 21))
         self.tiff_folder_line_edit.setObjectName("tiff_folder_line_edit")
         self.tiff_folder_line_edit.setPlaceholderText("Tiff Folder Path")
 
         # Place Tiff folder button
         self.tiff_folder_button = QtWidgets.QPushButton(parent=self.centralwidget, text="Tiff Folder")
-        self.tiff_folder_button.clicked.connect(lambda x: self.start_loading(self.tiff_folder_button_clicked()))
-        self.tiff_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
+        self.tiff_folder_button.clicked.connect(lambda x: self.start_loading(self.tiff_folder_button_clicked))
+        self.tiff_folder_button.setGeometry(QtCore.QRect(1240, 10, 111, 21))  # Set the geometry of the button
 
     def place_gerber_folder(self):
         self.gerber_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
@@ -310,6 +316,8 @@ class MainWindow(QMainWindow):
         self.gerber_folder_button = QtWidgets.QPushButton(parent=self.centralwidget, text="Gerber Folder")  # Create the button
         self.gerber_folder_button.clicked.connect(lambda x: self.start_loading(self.gerber_folder_button_clicked))  # Connect the button to the function
         self.gerber_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
+
+
 
     def place_plotting_canvas(self):
         self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=50)
@@ -453,8 +461,11 @@ class MainWindow(QMainWindow):
 
     # noinspection PyUnboundLocalVariable
     def tiff_folder_button_clicked(self):
+        # options |= QtWidgets.QFileDialog.DontUseNativeDialog
+
         # TODO: make functional
         return
+
 
     def gerber_folder_button_clicked(self):
         # options |= QtWidgets.QFileDialog.DontUseNativeDialog
@@ -549,6 +560,8 @@ class MainWindow(QMainWindow):
         if func == self.gerber_folder_button_clicked:
             self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Scream')
         elif func == self.submit_button_clicked:
+            pass
+        elif func == self.tiff_folder_button_clicked:
             pass
 
         self.loading_screen = LoadingScreen()

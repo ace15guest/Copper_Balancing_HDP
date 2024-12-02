@@ -30,8 +30,6 @@ def clear_folder(folder_path):
             print(f'Failed to delete {file_path}. Reason: {e}')
 
 
-import os
-
 
 def find_inkscape():
     # Common directories where Inkscape might be installed

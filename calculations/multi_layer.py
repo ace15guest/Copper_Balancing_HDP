@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def multiple_layers(layer_dict: dict) -> np.array:
     try:
         print(layer_dict)
@@ -8,4 +10,3 @@ def multiple_layers(layer_dict: dict) -> np.array:
         layer_array = None
     print('Done')
     return layer_array
-
