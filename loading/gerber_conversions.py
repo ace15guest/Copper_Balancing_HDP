@@ -53,19 +53,28 @@ def gerber_to_274x(file_path, save_path):
 
 def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log", outline_file=None):
     """
+    Convert Gerber file to PNG using Gerbv.
+    Parameters:
+    - gerb_file (str): Path to the Gerber file.
+    - save_folder (str): Path to the folder where the PNG file will be saved.
+    - save_path (str): Name of the PNG file.
+    - dpi (int, optional): DPI for the PNG file. Default is 1500.
+    - scale (int, optional): Scale factor for the PNG file. Default is 1.
+    - error_log_path (str, optional): Path to the error log file. Default is "error.log".
+    - outline_file (str, optional): Path to the outline file. Default is None.
 
-    :param gerb_file:
-    :param save_path:
-    :param dpi: 0-2000
-    :return:
+    Returns:
+    str: Path to the saved PNG file.
     """
     save_path = f"{save_path}.tif"
     if outline_file is None:
         command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}" "{gerb_file}" 2> {error_log_path}.txt'
     else:
+        # Merge the gerber file with the outline file
         command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}" "{gerb_file}" "{outline_file}" 2> {error_log_path}.txt'
     subprocess.Popen(command)
     return save_path
+
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
 
@@ -113,23 +122,35 @@ def array_to_bitmap(array, output_path):
     # Save the image to a file
     img.save("out.bmp")
 
-def check_tiff_dimensions(folder_path):
+def check_tiff_dimensions(folder_path, raw_tiff=False):
+    """
+    This function checks to make sure all tiff dimensions are the same
+
+    params
+    folder_path: The path where the tiff are located
+    raw_tiff: If the files being loaded in are raw tiff, True. If the function is being used on gerber that has been coverted to tiff this is false
+    """
     dimensions = None
     all_same_size = True
-
+    file_names = []
     for file_name in os.listdir(folder_path):
         if file_name.endswith('.tif'):  # Ensure we're only checking TIFF files
             file_path = os.path.join(folder_path, file_name)
             with pImage.open(file_path) as img:
                 if dimensions is None:
                     dimensions = img.size  # Set the initial dimensions to compare against
+                    file_names.append(file_name)
                 elif img.size != dimensions:
                     all_same_size = False
-                    print(f"File {file_name} has different dimensions: {img.size} compared to the initial {dimensions}")
                     break  # Exit the loop early as we've found an inconsistency
+                else:
+                    file_names.append(file_name)
 
     if all_same_size:
-        return True
+        if raw_tiff:
+            return True, file_names
+        else:
+            return True
     else:
         return False
 

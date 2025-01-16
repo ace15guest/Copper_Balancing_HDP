@@ -1,5 +1,8 @@
 import os
 import shutil
+from pathlib import Path
+
+ini_global_path = f"{os.environ["LocalAppData"]}/CuBalancing/Settings/config.ini"
 
 def clear_folder(folder_path):
     """
@@ -15,9 +18,10 @@ def clear_folder(folder_path):
     if not os.path.isdir(folder_path):
         print(f"Error: The path {folder_path} is not a directory.")
         return
-    if not os.path.abspath(folder_path).startswith(os.path.abspath('Assets')):
-        print(f"Error: The path {folder_path} is not a safe path.")
-        return
+    # Ensure we are only editing files within this directory -- not needed since we are creating a new folder in App data
+    # if not os.path.abspath(folder_path).startswith(os.path.abspath('Assets')):
+    #     print(f"Error: The path {folder_path} is not a safe path.")
+    #     return
 
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
@@ -29,7 +33,14 @@ def clear_folder(folder_path):
         except Exception as e:
             print(f'Failed to delete {file_path}. Reason: {e}')
 
+def create_folders(file_path:str):
+    # Split the file path into a list of folders
+    file_path = file_path.replace('\\','/').replace('//', '/')
+    folders = file_path.split('/')
 
+    # Create the folders if they do not exist
+    file = Path(file_path)
+    file.parent.mkdir(parents=True, exist_ok=True)
 
 def find_inkscape():
     # Common directories where Inkscape might be installed
