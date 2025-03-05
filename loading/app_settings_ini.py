@@ -19,7 +19,7 @@ def check_structure(config):
     if section2_check in config.sections():
         try:
 
-            check4 = config[section2_check]['blurring'] in ['gauss', 'box', 'median', 'bilateral']
+            check4 = config[section2_check]['blurring'] in ['gauss', 'box', 'median', 'bilateral', "MetAve"]
             check5 = isinstance(float(config[section2_check]['gauss sigma']), float)
             check6 = isinstance(int(config[section2_check]['kernel size']), int)
             check7 = isinstance(int(config[section2_check]['dpi']), int)

@@ -22,7 +22,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv, check_tiff_dimensions
 from loading.img2array import bitmap_to_array
 import matplotlib.pyplot as plt
-from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss, box_blur, median_blur
+from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss, box_blur, median_blur, met_ave
 from calculations.multi_layer import multiple_layers
 from file_handling import clear_folder
 from gui.settings import SettingsPage
@@ -304,8 +304,6 @@ class MainWindow(QMainWindow):
         self.gerber_folder_button.clicked.connect(lambda x: self.start_loading(self.gerber_folder_button_clicked))  # Connect the button to the function
         self.gerber_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
 
-
-
     def place_plotting_canvas(self):
         self.canvas = MplCanvas(self.right_groupbox, width=5, height=4, dpi=50)
         self.right_layout.addWidget(self.canvas)
@@ -342,6 +340,7 @@ class MainWindow(QMainWindow):
         self.arrays = {}
 
         file_ct = 0
+        # If we did not select raw tiff files (we selected gerber)
         if not self.raw_tiff_selected:
             for idx, file in enumerate(self.files_chosen):
                 self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
@@ -357,6 +356,8 @@ class MainWindow(QMainWindow):
             all_same_size = check_tiff_dimensions(self.temp_tiff_folder) # Make sure all gerber are the same dimensions
         else:
             all_same_size = True # We can set this to true since we already checked the size of the tiff files
+
+        # If the files are not the same x/y dimension we must select an outline file
         if not all_same_size:
             self.loading_screen.close()
             self.loading_screen.destroy()
@@ -389,12 +390,15 @@ class MainWindow(QMainWindow):
         if self.config['Algorithm']['blurring'] == 'gauss':
             data = blur_tiff_gauss(data, float(self.config['Algorithm']['gauss sigma']))
         elif self.config['Algorithm']['blurring'] == 'box':
-            box_blur(data, int(self.config['Algorithm']['kernel size']))
+            data = box_blur(data, int(self.config['Algorithm']['kernel size']))
         elif self.config['Algorithm']['blurring'] == 'median':
-            median_blur(data, int(self.config['Algorithm']['kernel size']))
+            data = median_blur(data, int(self.config['Algorithm']['kernel size']))
         elif self.config['Algorithm']['blurring'] == 'bilateral':
             pass
+        elif self.config['Algorithm']['blurring'] == 'MetAve':
+            data = met_ave(data, int(self.config['Algorithm']['kernel size']))
 
+        # Normalize the data between 0 and 255
         data = (data * 255.0 / np.max(data))
 
 
@@ -408,11 +412,6 @@ class MainWindow(QMainWindow):
         pass
 
     def plot_data(self):
-        # data = np.random.rand(10, 10)
-        #
-        # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
-
-
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
         im = self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
         if hasattr(self, 'current_color_bar'):

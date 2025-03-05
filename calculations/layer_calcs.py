@@ -97,3 +97,35 @@ def blur_algo(img_array: np.array, x_subset: int, y_subset: int):
 
             except:
                 pass
+
+def met_ave(img_array, radius):
+    """
+     Calculate the mean value of a given image array within a specified radius. This was what the MetAve algorithm used
+
+    :param img_array: The input image array.
+    :param radius: The radius around each pixel to consider for mean calculation.
+    :return: numpy.ndarray: The resulting mean array with the same dimensions as the input image array.
+    """
+    # padded_array = np.pad(array=img_array, pad_width=radius, mode='constant', constant_values=0)
+
+    # Create an array of zeroes
+    result = np.zeros_like(img_array, dtype=float)
+    normalization_factor = (2*radius+1)**2
+
+    for x in range(img_array.shape[0]):
+        for y in range(img_array.shape[1]):
+
+            # Find the min/max x and y coords accounting for boundaries which will only consider
+            x_min, x_max = max(0, x-radius), min(img_array.shape[0], img_array.shape[0]+radius)
+            y_min, y_max = max(0, y-radius), min(img_array.shape[1], img_array.shape[1]+radius)
+
+            area = img_array[x_min:x_max+1, y_min:y_max+1]
+            result[x, y] = np.sum(area)/normalization_factor
+
+    return result
+
+if "__main__" == __name__:
+    met_ave(np.array([[1,2,3,4,4,5,2,1,4,5,6,7,8,4,5,8,7,5],
+                      [4,5,6,6,9,8,6,4,3,2,3,5,1,2,3,4,9,0],
+                      [7,8,9,3,5,6,7,8,8,8,6,4,3,3,2,3,4,6],
+                      [7,8,9,3,5,6,7,4,8,1,6,4,2,3,3,3,4,5]]), 2)

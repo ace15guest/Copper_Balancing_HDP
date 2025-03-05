@@ -44,7 +44,7 @@ class SettingsPage(QWidget):
 
 
         self.blurring_combobox = QComboBox()
-        self.blurring_combobox.addItems(["gauss", "box", "median", "bilateral"])
+        self.blurring_combobox.addItems(["gauss", "box", "median", "bilateral", "MetAve"])
         self.blurring_combobox.setCurrentText(self.config["Algorithm"]["blurring"])
 
         self.kernel_pixels_size_spinbox = QSpinBox()
