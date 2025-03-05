@@ -98,7 +98,7 @@ def blur_algo(img_array: np.array, x_subset: int, y_subset: int):
             except:
                 pass
 
-def met_ave(img_array, radius):
+def met_ave_old(img_array, radius):
     """
      Calculate the mean value of a given image array within a specified radius. This was what the MetAve algorithm used
 
@@ -123,6 +123,27 @@ def met_ave(img_array, radius):
             result[x, y] = np.sum(area)/normalization_factor
 
     return result
+
+def met_ave(img_array, radius):
+    """
+    Optimized mean calculation using an integral image for fast local averaging.
+
+    :param img_array: 2D numpy array (image).
+    :param radius: Neighborhood radius for averaging.
+    :return: 2D numpy array with local means.
+    """
+    h, w = img_array.shape
+    normalization_factor = (2 * radius + 1) ** 2
+
+    # Compute integral image (cumulative sum)
+    integral = np.pad(img_array, ((1, 0), (1, 0)), mode='constant', constant_values=0).cumsum(axis=0).cumsum(axis=1)
+
+    # Compute sums using the integral image
+    x1, y1 = np.meshgrid(np.arange(w), np.arange(h), indexing="xy")
+    x2, y2 = np.clip(x1 + radius + 1, 0, w), np.clip(y1 + radius + 1, 0, h)
+    x1, y1 = np.clip(x1 - radius, 0, w), np.clip(y1 - radius, 0, h)
+
+    result = (integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]) / normalization_factor
 
 if "__main__" == __name__:
     met_ave(np.array([[1,2,3,4,4,5,2,1,4,5,6,7,8,4,5,8,7,5],
