@@ -25,7 +25,7 @@ class ItemWidget(QWidget):
         self.comboBox.addItem("2 oz")
         self.comboBox.addItem("3 oz")
         self.layout.addWidget(self.comboBox)
-        self.comboBox.setFixedSize(50, 25)
+        self.comboBox.setFixedSize(55, 25)
 
         self.selected_layer = QCheckBox(text, self)
 

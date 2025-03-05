@@ -13,7 +13,7 @@ from loading.gerber_load import check_gerber, verify_gerber
 import os
 import json
 import matplotlib.colors as c
-
+from loading import app_settings_ini
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QMessageBox
 from gui.colorbar import BlendedColorBar
@@ -22,30 +22,38 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv, check_tiff_dimensions
 from loading.img2array import bitmap_to_array
 import matplotlib.pyplot as plt
-from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss
+from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss, box_blur, median_blur, met_ave
 from calculations.multi_layer import multiple_layers
 from file_handling import clear_folder
+from gui.settings import SettingsPage
 
 
 class MainWindow(QMainWindow):
-    swap = pyqtSignal(str, str)
-
+    swap = pyqtSignal(str, str) # I forget what this does and if it has any functionality
     def __init__(self):
         super().__init__()
 
+        self.selected_item = None # The item that is selected in the scroll window changed by selectedItem function
         self.load_file = False
-        self.sigma = 2
-        self.blur_x = 5
-        self.blur_y = 5
-        self.dpi_val = 400
+        self.sigma = 2 # Gaussian Blur parameter
+        self.blur_x = 5 # Blur in the y direction
+        self.blur_y = 5 # Blur in the X direction
+        self.dpi_val = 400 #dots per inch of tiff output Thi
         self.run_verification = True  # Run the verification on input files
-        self.blur = 'gauss'  # The type of blur to apply to the tiff files
-        self.folder_name = ''
-        self.temp_folder = "Assets/temp"
-        self.temp_svg_folder = "Assets/temp_svg"
-        self.temp_error_folder = "Assets/temp_error"
-        self.temp_tiff_folder = "Assets/temp_tiff"
-        self.temp_pdf_folder = "Assets/temp_pdf"
+        self.raw_tiff_selected = False # If the tiff folder is selected outright
+        self.blur_type = 'gauss'  # The type of blur to apply to the tiff files
+        self.gerber_folder_name = ''  # The folder where the gerber data is held
+        self.tiff_folder_name = ''  # The folder where tiff files are held
+
+        # Default folder locations
+        self.temp_folder = f"{os.environ["Temp"]}/CuBalancing/temp"
+        self.temp_svg_folder = f"{os.environ["Temp"]}/CuBalancing/temp_svg"
+        self.temp_error_folder = f"{os.environ["Temp"]}/CuBalancing/temp_error"
+        self.temp_tiff_folder = f"{os.environ["Temp"]}/CuBalancing/temp_tiff"
+        self.temp_pdf_folder = f"{os.environ["Temp"]}/CuBalancing/temp_pdf"
+
+        # Give our object us access to the configuration file
+        self.config = app_settings_ini.create_config_parser()
 
         clear_folder(self.temp_folder)
         clear_folder(self.temp_svg_folder)
@@ -76,11 +84,6 @@ class MainWindow(QMainWindow):
         self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        # colors = ['#0000ff', '#00ffff', '#ffffff', '#ffff00', '#ff0000']
-        # labels = ['0', '25', '50', '75', '100']
-        # self.color_bar = BlendedColorBar(colors, labels, self)
-        # self.color_bar.setGeometry(1550, 100, 40, 750)
-
         # self.setCentralWidget(self.centralwidget)
         self.central_layout = QVBoxLayout(self.centralwidget)
         self.central_layout.setGeometry(QRect(100, 100, 85, 94))
@@ -88,6 +91,7 @@ class MainWindow(QMainWindow):
         # Place the gerber folder input
         self.add_menu_bar()
         self.place_gerber_folder()
+        self.place_tiff_folder()
         self.place_group_box()
         self.place_scroll_widget()
         self.place_color_buttons()
@@ -117,10 +121,16 @@ class MainWindow(QMainWindow):
     def add_drop_down_options(self):
         # Check if the dropdown already exists to avoid creating multiple instances
         self.show_dropdown_action = QAction("Settings", self)
+        self.show_dropdown_action.setStatusTip('Alter application settings')
         self.setup_menu.addAction(self.show_dropdown_action)
 
         # Connect the action to the method for handling the dropdown
-        # self.show_dropdown_action.triggered.connect(self.show_dropdown)
+        self.show_dropdown_action.triggered.connect(self.open_settings)
+
+    def open_settings(self):
+        self.settings_window = SettingsPage(self.config)
+        self.settings_window.show()
+        return
 
     def place_group_box(self):
         self.right_groupbox = QGroupBox(self.centralwidget)
@@ -131,31 +141,13 @@ class MainWindow(QMainWindow):
 
     def place_scroll_widget(self):
         self.file_scrollArea = QScrollArea(self.centralwidget)
-        self.file_scrollArea.setGeometry(QRect(205, 50, 290, 600))
+        self.file_scrollArea.setGeometry(QRect(205, 50, 290, 565))
         self.file_scrollArea.setWidgetResizable(True)
         self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
         self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.file_scrollAreaWidgetContents = QWidget()
         self.file_scrollArea.setWidget(self.file_scrollAreaWidgetContents)
         self.scroll_areaLayout = QVBoxLayout(self.file_scrollAreaWidgetContents)
-
-        # Adding labels with long text
-        # for i in range(5):  # Assuming you want to add 5 labels
-        #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
-        #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
-        #     self.scroll_areaLayout.addWidget(label)
-
-    # def place_scroll_widget(self):
-    #     self.file_scrollArea = QScrollArea(self.centralwidget)
-    #     self.file_scrollArea.setGeometry(QRect(250, 80, 200, 601))
-    #     self.file_scrollArea.setWidgetResizable(True)
-    #     self.file_scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Set horizontal scroll bar
-    #     self.file_scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-    #     self.file_scrollAreaWidgetContents = QWidget()
-    #     self.file_scrollArea.setWidget(self.file_scrollAreaWidgetContents)
-    #     self.scroll_areaLayout = QVBoxLayout(self.file_scrollAreaWidgetContents)
-    #     # self.file_scrollAreaWidgetContents.setLayout(self.scroll_areaLayout)
-    #     # self.file_scrollArea.horizontalScrollBar().setMaximum(5000)
 
     def place_buttons_below_scroll(self):
         x = 205
@@ -181,7 +173,7 @@ class MainWindow(QMainWindow):
         self.moveDownButton.setGeometry(QRect(x, y_orig + y_size * 3, x_size, y_size))
 
         self.submit_button = QPushButton('Submit', self)
-        self.submit_button.clicked.connect(lambda x: self.start_loading(self.submit_button_clicked))
+        self.submit_button.clicked.connect(lambda dummy: self.start_loading(self.submit_button_clicked))
         self.submit_button.setGeometry(QRect(x, y_orig + y_size * 4, x_size, y_size))
 
         # Step 1 & 2: Add the button and connect it
@@ -204,11 +196,11 @@ class MainWindow(QMainWindow):
         # Step 3 & 4: Implement the method to check all files
 
     def delete_folder_order(self):
-        if self.folder_name == '':
+        if self.gerber_folder_name == '':
             show_error_message('Please select a gerber file')
             return
-        elif os.path.exists(os.path.join(self.folder_name, "items_data.json")):
-            os.remove(os.path.join(self.folder_name, "items_data.json"))
+        elif os.path.exists(os.path.join(self.gerber_folder_name, "items_data.json")):
+            os.remove(os.path.join(self.gerber_folder_name, "items_data.json"))
             return
         else:
             show_error_message("No order file exists. Please select 'Save Order' button to create one.")
@@ -259,7 +251,7 @@ class MainWindow(QMainWindow):
             color_labels[i].setGeometry(QtCore.QRect(20, y_start + 4 + i * 30, 51, 21))
             self.color_info[i]['color_button'] = QtWidgets.QPushButton(parent=self)
             self.color_info[i]['color_button'].setGeometry(QtCore.QRect(90, y_start + i * 30, 30, 30))
-            self.color_info[i]['color_button'].clicked.connect(lambda x, i=i: self.on_color_box_clicked(i))
+            self.color_info[i]['color_button'].clicked.connect(lambda x, k=i: self.on_color_box_clicked(k))
             self.color_info[i]['color_button'].setStyleSheet(f"background-color: {colors[i]}")
 
             self.color_info[i]['check_box'] = qt_checkboxes[i]
@@ -290,15 +282,16 @@ class MainWindow(QMainWindow):
         self.load_color_palette()
 
     def place_tiff_folder(self):
+
         self.tiff_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
-        self.tiff_folder_line_edit.setGeometry(QtCore.QRect(10, 10, 531, 21))
+        self.tiff_folder_line_edit.setGeometry(QtCore.QRect(700, 10, 531, 21))
         self.tiff_folder_line_edit.setObjectName("tiff_folder_line_edit")
         self.tiff_folder_line_edit.setPlaceholderText("Tiff Folder Path")
 
         # Place Tiff folder button
         self.tiff_folder_button = QtWidgets.QPushButton(parent=self.centralwidget, text="Tiff Folder")
-        self.tiff_folder_button.clicked.connect(lambda x: self.start_loading(self.tiff_folder_button_clicked()))
-        self.tiff_folder_button.setGeometry(QtCore.QRect(550, 10, 111, 21))  # Set the geometry of the button
+        self.tiff_folder_button.clicked.connect(lambda x: self.start_loading(self.tiff_folder_button_clicked))
+        self.tiff_folder_button.setGeometry(QtCore.QRect(1240, 10, 111, 21))  # Set the geometry of the button
 
     def place_gerber_folder(self):
         self.gerber_folder_line_edit = QtWidgets.QLineEdit(self.centralwidget)
@@ -326,8 +319,13 @@ class MainWindow(QMainWindow):
     ######################
 
     def submit_button_clicked(self, outline_file=None):
-        self.files_chosen = {}
-        self.files_inversed_tracking = {}
+        """
+
+        @param outline_file:
+        @return:
+        """
+        self.files_chosen = {}  # Tracking the selected files
+
         if not self.items:
             return
         for item in self.items:
@@ -342,19 +340,24 @@ class MainWindow(QMainWindow):
         self.arrays = {}
 
         file_ct = 0
+        # If we did not select raw tiff files (we selected gerber)
+        if not self.raw_tiff_selected:
+            for idx, file in enumerate(self.files_chosen):
+                self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
+                tiff_name = os.path.join(self.temp_tiff_folder, file)
 
-        for idx, file in enumerate(self.files_chosen):
-            self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
-            tiff_name = os.path.join(self.temp_tiff_folder, file)
+                gerber_to_png_gerbv(os.path.join(self.gerber_folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.config["Algorithm"]["dpi"], scale=1, error_log_path=os.path.join(self.temp_error_folder, file),
+                                    outline_file=outline_file)
+                file_ct += 1
 
-            gerber_to_png_gerbv(os.path.join(self.folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.dpi_val, scale=1, error_log_path=os.path.join(self.temp_error_folder, file),
-                                outline_file=outline_file)
-            file_ct += 1
+            while len(os.listdir(self.temp_tiff_folder)) < file_ct:
+                time.sleep(5)
 
-        while len(os.listdir(self.temp_tiff_folder)) < file_ct:
-            time.sleep(5)
+            all_same_size = check_tiff_dimensions(self.temp_tiff_folder) # Make sure all gerber are the same dimensions
+        else:
+            all_same_size = True # We can set this to true since we already checked the size of the tiff files
 
-        all_same_size = check_tiff_dimensions(self.temp_tiff_folder)
+        # If the files are not the same x/y dimension we must select an outline file
         if not all_same_size:
             self.loading_screen.close()
             self.loading_screen.destroy()
@@ -367,31 +370,48 @@ class MainWindow(QMainWindow):
                 os.remove(os.path.join(self.temp_tiff_folder, file))
             self.submit_button_clicked(outline_file)
             return
+        if not self.raw_tiff_selected:
+            tiff_folder = self.temp_tiff_folder
+        else:
+            tiff_folder = self.tiff_folder_name
 
-        for idx, file in enumerate(os.listdir(self.temp_tiff_folder)):
-            inverted = self.files_chosen[file.replace('.tif', '')]['Inverted']
-            self.arrays[file] = bitmap_to_array(os.path.join(self.temp_tiff_folder, file), inverted)
+        for idx, file in enumerate(os.listdir(tiff_folder)):
+            if not self.raw_tiff_selected:
+                inverted = self.files_chosen[file.replace('.tif', '')]['Inverted']
+            else:
+                if file not in list(self.files_chosen.keys()): # Because we were choosing a tiff folder that has all tiff and not only items we selected we have to exclude names not chosen
+                    continue
+                inverted = self.files_chosen[file]['Inverted']
+            self.arrays[file] = bitmap_to_array(os.path.join(tiff_folder, file), inverted)
             self.loading_screen.set_progress(idx, f"Converting to array... {file}")
 
         data = multiple_layers(self.arrays)
 
-        data = blur_tiff_gauss(data, self.sigma)
+        if self.config['Algorithm']['blurring'] == 'gauss':
+            data = blur_tiff_gauss(data, float(self.config['Algorithm']['gauss sigma']))
+        elif self.config['Algorithm']['blurring'] == 'box':
+            data = box_blur(data, int(self.config['Algorithm']['kernel size']))
+        elif self.config['Algorithm']['blurring'] == 'median':
+            data = median_blur(data, int(self.config['Algorithm']['kernel size']))
+        elif self.config['Algorithm']['blurring'] == 'bilateral':
+            pass
+        elif self.config['Algorithm']['blurring'] == 'MetAve':
+            data = met_ave(data, int(self.config['Algorithm']['kernel size']))
 
+        # Normalize the data between 0 and 255
         data = (data * 255.0 / np.max(data))
+
 
         self.loading_screen.close()
         self.loading_screen.destroy()
         self.current_data = data
         self.plot_data()
 
-        # svg_name, error_log = gerber_to_svg_gerbv(os.path.join(self.folder_name, file), file)
+
 
         pass
 
     def plot_data(self):
-        # data = np.random.rand(10, 10)
-        #
-        # data = (data - min(data.flatten())) / (max(data.flatten()) - min(data.flatten()))
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
         im = self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
         if hasattr(self, 'current_color_bar'):
@@ -453,36 +473,95 @@ class MainWindow(QMainWindow):
 
     # noinspection PyUnboundLocalVariable
     def tiff_folder_button_clicked(self):
-        # TODO: make functional
+        self.selected_item =None
+        self.raw_tiff_selected = True
+
+        # options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        max_width = 0
+
+        if self.tiff_folder_name:
+            self.loading_screen.progressBar.setMaximum(len(os.listdir(self.tiff_folder_name)*2))  # Set the maximum length of the progress bar
+
+            self.tiff_folder_line_edit.setText(self.tiff_folder_name)  # Display the Tiff Folder on the screen within the entry box
+            self.config["FileLocations"]["tiff path"] = self.tiff_folder_name
+            app_settings_ini.write_to_config(self.config)
+            self.clear_layout(self.scroll_areaLayout)  # Clear any items in the scroll area
+
+            self.items = []  # Hold the items that will be in the scroll area layout
+            check_names = []
+
+            if self.run_verification: # This should always be True
+                self.loading_screen.set_progress(15, f"Verifying all tiff files are the same size")
+
+                all_same_size, file_names = check_tiff_dimensions(folder_path=self.tiff_folder_name, raw_tiff=True)
+
+                if not all_same_size:
+                    show_error_message("All Tiff files must be the same size")
+
+        waiting = True # Waits for all files to be loaded in
+        if os.path.exists(os.path.join(self.tiff_folder_name, "items_data.json")):  # If there is a saved setting file, we will load it in
+            self.load_file = True
+        else:
+            self.load_file = False
+        failed_to_read = []
+        # create counter
+        count = 0
+        while waiting:
+            count +=1# Keep this while loop
+            if self.load_file:
+                # TODO: Read in Json file for tiff
+                pass
+            else:
+                for idx,file in enumerate(file_names):
+                    item = scroll.ItemWidget(f"{file}", self.file_scrollAreaWidgetContents)
+                    self.scroll_areaLayout.addWidget(item)
+                    item.selected_layer.stateChanged.connect(lambda state, it=item: self.selectItem(it))
+                    max_width = max(max_width, item.sizeHint().width())  # Finds the max width but current
+                    self.items.append(item)
+                    file_names.remove(file)
+            if len(file_names) == 0:
+                waiting=False
+            elif count>100:
+                waiting=False
+        self.loading_screen.close()
+        self.loading_screen.destroy()
         return
 
+
     def gerber_folder_button_clicked(self):
-        # options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        failed_to_verify = []
+        self.raw_tiff_selected = False
 
-        if self.folder_name:
-            self.loading_screen.progressBar.setMaximum(len(os.listdir(self.folder_name) * 2))
+        if self.gerber_folder_name:
+            self.loading_screen.progressBar.setMaximum(len(os.listdir(self.gerber_folder_name) * 2))
 
-            self.gerber_folder_line_edit.setText(self.folder_name)
+            self.gerber_folder_line_edit.setText(self.gerber_folder_name)
+            # Update the config file
+            self.config["FileLocations"]["Gerber Path"] = self.gerber_folder_name
+            app_settings_ini.write_to_config(self.config)
 
             self.clear_layout(self.scroll_areaLayout)
-            self.items = []
-            self.selected_item = None
+            self.items = []  # Items to be placed in the scroll area
+            self.selected_item = None # probably best to keep this within the function but add to __init__ too
             max_width = 0
             check_names = []
-            for idx, i in enumerate(os.listdir(self.folder_name)):
+            for idx, i in enumerate(os.listdir(self.gerber_folder_name)):
                 if self.run_verification:  # Always run verification
-                    check_names.append((check_gerber(os.path.join(self.folder_name, i)), i))
+                    check_names.append((check_gerber(os.path.join(self.gerber_folder_name, i)), i)) # Keep check names as a tuple. It will make implementation in this function easier
                 self.loading_screen.set_progress(idx, f"Please Wait Loading Files... {i}%")
 
             waiting = True
 
-            if os.path.exists(os.path.join(self.folder_name, "items_data.json")):
-                self.load_file = True
-            failed_to_verify = []
-            while waiting:
+            if os.path.exists(os.path.join(self.gerber_folder_name, "items_data.json")): # If there is a preloaded order load it in
+                self.load_file = True # This allows us to load in the files in the while loop
+            else:
+                self.load_file = False # This will check all files within the folder and only take the one
+            failed_to_verify = [] # Holds the files that the program could not read
+
+            while waiting: # Wrap it in a while loop because it sometimes fails with issues reading
                 if self.load_file:
                     try:
-                        files_info = self.read_and_sort_json_by_index(os.path.join(self.folder_name, "items_data.json"))
+                        files_info = self.read_and_sort_json_by_index(os.path.join(self.gerber_folder_name, "items_data.json"))
                         for file_saved in files_info:
                             item = scroll.ItemWidget(file_saved['file_name'], self.file_scrollAreaWidgetContents)
                             self.scroll_areaLayout.addWidget(item)
@@ -500,25 +579,24 @@ class MainWindow(QMainWindow):
                         waiting = False
                     except Exception as error:
                         show_error_message("The file items_data.json is corrupted. The file will be deleted. The files will be reloaded in the order they are in the folder.")
-                        os.remove(os.path.join(self.folder_name, "items_data.json"))
+                        os.remove(os.path.join(self.gerber_folder_name, "items_data.json"))
                         self.load_file = False
                 elif not self.load_file:
 
                     for idx, file in enumerate(check_names):
                         try:
-                            if verify_gerber(file[0]):
+                            if verify_gerber(file[0]): # If the file is valid add it to the scroll area
                                 item = scroll.ItemWidget(f"{file[1]}", self.file_scrollAreaWidgetContents)
                                 self.scroll_areaLayout.addWidget(item)
                                 item.selected_layer.stateChanged.connect(lambda state, it=item: self.selectItem(it))
-                                max_width = max(max_width, item.sizeHint().width())
+                                max_width = max(max_width, item.sizeHint().width()) # Finds the max width but current
                                 self.items.append(item)
                             else:
-                                failed_to_verify.append(file[0])
-                            check_names.remove(file)
+                                failed_to_verify.append(file[0]) # Files that the program could not verify
+                            check_names.remove(file) # Once the file is checked remove it from the list
 
                             self.loading_screen.set_progress(self.loading_screen.progressBar.value() + idx,
                                                              f"Verifying Files... {file[1]}%")
-
                         except:
                             pass
 
@@ -526,14 +604,10 @@ class MainWindow(QMainWindow):
                         waiting = False
             failed_to_verify = list(set(failed_to_verify))
 
-            # for i in range(1):  # Assuming you want to add 5 labels
-            #     long_text = "This is a very long label text " * 10  # Repeat the text to make it long
-            #     label =QtWidgets.QLabel(long_text, self.file_scrollAreaWidgetContents)
-            #     self.scroll_areaLayout.addWidget(label)
-            # Set the maximum value of the horizontal scroll bar
-            # self.file_scrollArea.horizontalScrollBar().setMaximum(max_width + 100)
+
         self.loading_screen.close()
         self.loading_screen.destroy()
+        # Show what items could not be ver
         if failed_to_verify:
             fail_message = '\n'.join(failed_to_verify)
             fail_message = 'The following files could not be read: \n' + fail_message
@@ -546,10 +620,20 @@ class MainWindow(QMainWindow):
         self.selected_item.set_highlight(True)
 
     def start_loading(self, func):
+
         if func == self.gerber_folder_button_clicked:
-            self.folder_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{os.getcwd()}\Assets\gerbers\Scream')
+            tmp_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{self.config["FileLocations"]["gerber path"]}')
+            if tmp_name == "":
+                return
+            self.gerber_folder_name = tmp_name
         elif func == self.submit_button_clicked:
             pass
+        elif func == self.tiff_folder_button_clicked:
+            tmp_name = QtWidgets.QFileDialog.getExistingDirectory(self.centralwidget, "Select Folder", directory=fr'{self.config["FileLocations"]["tiff path"]}')
+            if tmp_name == "":
+                return
+            self.tiff_folder_name = tmp_name
+
 
         self.loading_screen = LoadingScreen()
 
@@ -611,7 +695,7 @@ class MainWindow(QMainWindow):
             return
         for idx, item in enumerate(self.items):
 
-            file_path = os.path.join(self.folder_name, item.selected_layer.text())
+            file_path = os.path.join(self.gerber_folder_name, item.selected_layer.text())
             if os.path.isfile(file_path):
                 # Assuming the Cu weight is part of the file name, e.g., "file_name_CuWeight.txt"
                 # You might need to adjust this logic depending on how the Cu weight is stored
@@ -619,7 +703,7 @@ class MainWindow(QMainWindow):
                 inverted = item.inverted_layer.isChecked()
                 selected = item.selected_layer.isChecked()
                 items_data.append({"index": idx, "file_path": file_path, "file_name": item.selected_layer.text(), "cu_weight": cu_weight, "inverted": inverted, "selected": selected})
-        output_json_path = os.path.join(self.folder_name, "items_data.json")
+        output_json_path = os.path.join(self.gerber_folder_name, "items_data.json")
         with open(output_json_path, 'w') as json_file:
             json.dump(items_data, json_file, indent=4)
 

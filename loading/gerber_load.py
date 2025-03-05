@@ -1,6 +1,4 @@
 import os
-
-from wand.image import Image
 import subprocess
 import time
 from pathlib import Path
@@ -30,13 +28,25 @@ def check_gerber(file_path: str) -> str:
 
     return log_file_name
 
+def check_tiff(file_path:str) -> str:
+    return
+
 def verify_gerber(file_path: str) -> bool:
+    """
+    Verify the Gerber file generated from Gerbv.
+
+    Args:
+        file_path (str): The path to the Gerber file.
+
+    Returns:
+        bool: True if the file is valid, False otherwise.
+    """
     failed_words = ['error', 'fail', 'invalid', 'not found', 'not supported', 'not recognized',
                     'not valid', 'not read', 'not exist']
     with open(file_path, 'r') as file:
         file_contents = file.read().lower()
-    error = any(word in file_contents for word in failed_words)
-    os.remove(file_path)
+    error = any(word in file_contents for word in failed_words) # Check if any of the error words are in the File generated from gerbv
+    os.remove(file_path) # Remove the file from the computer
     if error:
         return False
     return True

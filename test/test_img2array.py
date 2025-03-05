@@ -4,6 +4,7 @@ import os
 from PIL import Image
 from loading.img2array import array_to_bitmap
 
+
 class TestBitmap(unittest.TestCase):
     def setUp(self):
         self.array = np.array([[255, 0, 0], [0, 255, 0], [0, 0, 255]], dtype=np.uint8)
@@ -23,6 +24,7 @@ class TestBitmap(unittest.TestCase):
 
         # Check if the saved image matches the original array
         np.testing.assert_array_equal(self.array, loaded_array)
+
 
 if __name__ == '__main__':
     unittest.main()
