@@ -144,6 +144,7 @@ def met_ave(img_array, radius):
     x1, y1 = np.clip(x1 - radius, 0, w), np.clip(y1 - radius, 0, h)
 
     result = (integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]) / normalization_factor
+    return result
 
 if "__main__" == __name__:
     met_ave(np.array([[1,2,3,4,4,5,2,1,4,5,6,7,8,4,5,8,7,5],
