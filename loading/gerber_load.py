@@ -14,19 +14,13 @@ def check_gerber(file_path: str) -> str:
     :return: True if the gerber file is valid, False otherwise
 
     """
-    name = file_path.split('\\')[-1]
+    name = Path(file_path).name
     Path(r"Assets\temp").mkdir(exist_ok=True, parents=True)
     log_file_name = fr"Assets\temp\{name}.log"
     cmd_line = fr'Assets\gerbv\gerbv -x rs274x -o NUL "{file_path}" 2>"{log_file_name}"'
+    process = subprocess.Popen(cmd_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-    start_time = time.time()
-    subprocess.Popen(cmd_line, shell=True)
-    end_time = time.time()
-    # TODO: Make Gerbv log
-    # print(f"Time taken to run gerbv: {end_time - start_time}")
-
-
-    return log_file_name
+    return log_file_name, process
 
 def check_tiff(file_path:str) -> str:
     return

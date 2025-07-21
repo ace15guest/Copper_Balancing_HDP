@@ -1,5 +1,6 @@
 import numpy as np
-
+import re
+import os
 
 def blur_tiff_manual(array, blur_x=2, blur_y=2):
     """
@@ -146,8 +147,59 @@ def met_ave(img_array, radius):
     result = (integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]) / normalization_factor
     return result
 
-if "__main__" == __name__:
-    met_ave(np.array([[1,2,3,4,4,5,2,1,4,5,6,7,8,4,5,8,7,5],
-                      [4,5,6,6,9,8,6,4,3,2,3,5,1,2,3,4,9,0],
-                      [7,8,9,3,5,6,7,8,8,8,6,4,3,3,2,3,4,6],
-                      [7,8,9,3,5,6,7,4,8,1,6,4,2,3,3,3,4,5]]), 2)
+
+
+def scan_gerber_extrema(folder_path):
+    coord_re = re.compile(r'^(?:X(-?\d+))?(?:Y(-?\d+))?D01\*$')
+    format_re = re.compile(r'%FS[L|T]X(\d)(\d)Y(\d)(\d)\*%')
+    units = "mm"
+    int_digits, dec_digits = 2, 4  # Default to 2.4
+    x_vals, y_vals = [], []
+    xpoints = {}
+    ypoints = {}
+    file_name = ""
+    for file_path in os.listdir(folder_path):
+        with open(os.path.join(folder_path, file_path), 'r') as f:
+            for line in f:
+                if '%MOIN' in line:
+                    units = "in"
+                elif '%MOMM' in line:
+                    units = "mm"
+                elif line.startswith('%FS'):
+                    match = format_re.search(line)
+                    if match:
+                        int_digits = int(match.group(1))
+                        dec_digits = int(match.group(2))
+                elif 'X' in line and 'D0' in line and "G03" not in line:
+                    match = coord_re.match(line)
+                    if match:
+                        try:
+                            x_val = int(match.group(1))
+                            x = x_val / (10 ** dec_digits)
+                            xpoints[x] = f"{match.group(1)}"
+                            x_vals.append(x)
+                        except:
+                            pass
+                        try:
+                            y_val = int(match.group(2))
+                            y = y_val / (10 ** dec_digits)
+                            ypoints[y] = f"{match.group(2)}"
+                            y_vals.append(y)
+                        except:
+                            pass
+                        file_name = file_path
+
+        if not x_vals or not y_vals:
+            pass
+    relief=.10 # Relief percent on the edge of the outline
+    return {
+        "file_path": os.path.join(folder_path, file_name),
+        "unit": units,
+        "xmin": min(x_vals),
+        "xmax": max(x_vals),
+        "ymin": min(y_vals),
+        "ymax": max(y_vals),
+        "xval_dict": xpoints,
+        "yval_dict": ypoints
+    }
+

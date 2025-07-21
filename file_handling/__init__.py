@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-
+import re
 ini_global_path = f"{os.environ["LocalAppData"]}/CuBalancing/Settings/config.ini"
 
 def clear_folder(folder_path):
@@ -68,6 +68,50 @@ def find_inkscape():
                 return path
 
     return None  # Inkscape executable not found
-
+def extract_format_spec(file_path):
+    """Extract the %FS...*% line from the Gerber file."""
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line.startswith('%FS') and line.endswith('*%\n'):
+                return line.strip()
+    # Default to 2.4 leading-zero omitted
+    return '%FSLAX24Y24*%'
+def create_outline_gerber_from_file(source_gerber, extrema, output_path):
+    xmin = extrema["xval_dict"][extrema["xmin"]]
+    xmax = extrema["xval_dict"][extrema["xmax"]]
+    ymin = extrema["yval_dict"][extrema["ymin"]]
+    ymax = extrema["yval_dict"][extrema["ymax"]]
+    unit = extrema["unit"]
+    format_line = extract_format_spec(source_gerber)
+    # Determine scale from format (assumes 2.4 or 3.5, etc.)
+    match = re.match(r'%FS[L|T]X(\d)(\d)Y(\d)(\d)\*%', format_line)
+    if match:
+        dec_digits = int(match.group(2))
+    else:
+        dec_digits = 4  # fallback default
+    scale = 10 ** dec_digits
+    def fmt(val): return f"{int(round(val * scale))}"
+    if unit == "in":
+        mo = "%MOIN*%"
+        aperture = "%ADD10C,0.001*%"  # 1 mil
+    else:
+        mo = "%MOMM*%"
+        aperture = "%ADD10C,0.1*%"    # 0.1 mm
+    with open(output_path, "w") as f:
+        f.write(format_line + "\n")
+        f.write(mo + "\n")
+        f.write("%IPPOS*%\n")
+        f.write("%LPD*%\n")
+        f.write("%AMOC8*5,1,8,0,0,1.08239X$1*%\n")
+        f.write(aperture + "\n")
+        f.write("D10*\n")
+        f.write("G01*\n")
+        # Draw rectangle
+        f.write(f"X{xmin}Y{ymin}D02*\n")
+        f.write(f"X{xmax}Y{ymin}D01*\n")
+        f.write(f"X{xmax}Y{ymax}D01*\n")
+        f.write(f"X{xmin}Y{ymax}D01*\n")
+        f.write(f"X{xmin}Y{ymin}D01*\n")
+        f.write("M02*\n")
 
 

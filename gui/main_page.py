@@ -22,10 +22,12 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
 from loading.gerber_conversions import gerber_to_svg_gerbv, svg_to_tiff_inkscape, svg_to_tiff, gerber_to_pdf_gerbv, pdf_page_to_array, gerber_to_png_gerbv, check_tiff_dimensions
 from loading.img2array import bitmap_to_array
 import matplotlib.pyplot as plt
-from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss, box_blur, median_blur, met_ave
+from calculations.layer_calcs import blur_tiff_manual, blur_tiff_gauss, box_blur, median_blur, met_ave, scan_gerber_extrema
 from calculations.multi_layer import multiple_layers
 from file_handling import clear_folder
 from gui.settings import SettingsPage
+from file_handling import create_outline_gerber_from_file
+import plotly.graph_objects as go
 
 
 class MainWindow(QMainWindow):
@@ -320,12 +322,10 @@ class MainWindow(QMainWindow):
 
     def submit_button_clicked(self, outline_file=None):
         """
-
         @param outline_file:
         @return:
         """
         self.files_chosen = {}  # Tracking the selected files
-
         if not self.items:
             return
         for item in self.items:
@@ -340,14 +340,15 @@ class MainWindow(QMainWindow):
         self.arrays = {}
 
         file_ct = 0
+        extrema = scan_gerber_extrema(self.gerber_folder_name)
+        create_outline_gerber_from_file(extrema['file_path'], extrema, os.path.join(self.gerber_folder_name, "outline_cubalance_HDP.gbr"))
+        outline_file = os.path.join(self.gerber_folder_name, "outline_cubalance_HDP.gbr")
         # If we did not select raw tiff files (we selected gerber)
         if not self.raw_tiff_selected:
             for idx, file in enumerate(self.files_chosen):
                 self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
                 tiff_name = os.path.join(self.temp_tiff_folder, file)
-
-                gerber_to_png_gerbv(os.path.join(self.gerber_folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.config["Algorithm"]["dpi"], scale=1, error_log_path=os.path.join(self.temp_error_folder, file),
-                                    outline_file=outline_file)
+                gerber_to_png_gerbv(os.path.join(self.gerber_folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.config["Algorithm"]["dpi"], scale=1, error_log_path=os.path.join(self.temp_error_folder, file), outline_file=outline_file)
                 file_ct += 1
 
             while len(os.listdir(self.temp_tiff_folder)) < file_ct:
@@ -357,19 +358,6 @@ class MainWindow(QMainWindow):
         else:
             all_same_size = True # We can set this to true since we already checked the size of the tiff files
 
-        # If the files are not the same x/y dimension we must select an outline file
-        if not all_same_size:
-            self.loading_screen.close()
-            self.loading_screen.destroy()
-            show_error_message("The Files must be the same size. Please indicate the outline file")
-            select_file = QtWidgets.QFileDialog.getOpenFileName(self.centralwidget, "Select Outline File", directory=fr'{os.getcwd()}\Assets\gerbers\Scream')
-            if select_file[0] == "":
-                return
-            outline_file = select_file[0]
-            for file in os.listdir(self.temp_tiff_folder):
-                os.remove(os.path.join(self.temp_tiff_folder, file))
-            self.submit_button_clicked(outline_file)
-            return
         if not self.raw_tiff_selected:
             tiff_folder = self.temp_tiff_folder
         else:
@@ -411,6 +399,7 @@ class MainWindow(QMainWindow):
 
         pass
 
+
     def plot_data(self):
         custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
         im = self.canvas.axes.imshow(self.current_data, cmap=custom_colormap_colors, norm=norm)
@@ -419,8 +408,31 @@ class MainWindow(QMainWindow):
         self.current_color_bar = self.canvas.figure.colorbar(im, ax=self.canvas.axes, orientation='horizontal', fraction=0.046, pad=0.04)
 
         # self.canvas.axes.imshow(data, cmap='Oranges')
-
         self.canvas.draw()
+        # self.plot_data_plotly()
+
+
+    def plot_data_plotly(self):
+        custom_colormap_colors, norm = self.create_custom_colormap_with_values(values=self.current_data)
+
+        # Create the heatmap using Plotly
+        fig = go.Figure(data=go.Heatmap(z=self.current_data, colorscale='Viridis',  # Replace with your custom colormap if needed
+            colorbar=dict(
+                orientation='h',
+                x=0.5,
+                xanchor='center',
+                y=-0.2
+            )
+        ))
+
+        # Update layout for better appearance
+        fig.update_layout(
+            title='Heatmap with Horizontal Colorbar',
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+
+        # Show the plot
+        fig.show()
 
     def create_custom_colormap_with_values(self, values):
         # self.removeColorBar()
@@ -545,9 +557,12 @@ class MainWindow(QMainWindow):
             self.selected_item = None # probably best to keep this within the function but add to __init__ too
             max_width = 0
             check_names = []
+            processes = []
             for idx, i in enumerate(os.listdir(self.gerber_folder_name)):
                 if self.run_verification:  # Always run verification
-                    check_names.append((check_gerber(os.path.join(self.gerber_folder_name, i)), i)) # Keep check names as a tuple. It will make implementation in this function easier
+                    log_file_name, process = check_gerber(os.path.join(self.gerber_folder_name, i))
+                    processes.append(process)
+                    check_names.append((log_file_name, i)) # Keep check names as a tuple. It will make implementation in this function easier
                 self.loading_screen.set_progress(idx, f"Please Wait Loading Files... {i}%")
 
             waiting = True
@@ -557,7 +572,7 @@ class MainWindow(QMainWindow):
             else:
                 self.load_file = False # This will check all files within the folder and only take the one
             failed_to_verify = [] # Holds the files that the program could not read
-
+            fail_count = 0 # How many cycles we will try before we fail a file
             while waiting: # Wrap it in a while loop because it sometimes fails with issues reading
                 if self.load_file:
                     try:
@@ -582,7 +597,6 @@ class MainWindow(QMainWindow):
                         os.remove(os.path.join(self.gerber_folder_name, "items_data.json"))
                         self.load_file = False
                 elif not self.load_file:
-
                     for idx, file in enumerate(check_names):
                         try:
                             if verify_gerber(file[0]): # If the file is valid add it to the scroll area
@@ -597,8 +611,13 @@ class MainWindow(QMainWindow):
 
                             self.loading_screen.set_progress(self.loading_screen.progressBar.value() + idx,
                                                              f"Verifying Files... {file[1]}%")
-                        except:
-                            pass
+                            fail_count = 0
+                        except Exception as error:
+                            print(error)
+                            # fail_count+=1
+                            # if fail_count > 750:
+                            #     failed_to_verify.append(file[0])
+                            #     check_names.remove(file)  # Once the file is checked remove it from the list
 
                     if len(check_names) == 0:
                         waiting = False
@@ -797,3 +816,7 @@ def show_error_message(message, win_title="Error", icon=QMessageBox.Icon.Critica
     error_dialog.setText(message)
     error_dialog.setWindowTitle(win_title)
     error_dialog.exec()
+
+
+
+
