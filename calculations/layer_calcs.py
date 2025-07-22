@@ -159,37 +159,40 @@ def scan_gerber_extrema(folder_path):
     ypoints = {}
     file_name = ""
     for file_path in os.listdir(folder_path):
-        with open(os.path.join(folder_path, file_path), 'r') as f:
-            for line in f:
-                if '%MOIN' in line:
-                    units = "in"
-                elif '%MOMM' in line:
-                    units = "mm"
-                elif line.startswith('%FS'):
-                    match = format_re.search(line)
-                    if match:
-                        int_digits = int(match.group(1))
-                        dec_digits = int(match.group(2))
-                elif 'X' in line and 'D0' in line and "G03" not in line:
-                    match = coord_re.match(line)
-                    if match:
-                        try:
-                            x_val = int(match.group(1))
-                            x = x_val / (10 ** dec_digits)
-                            xpoints[x] = f"{match.group(1)}"
-                            x_vals.append(x)
-                        except:
-                            pass
-                        try:
-                            y_val = int(match.group(2))
-                            y = y_val / (10 ** dec_digits)
-                            ypoints[y] = f"{match.group(2)}"
-                            y_vals.append(y)
-                        except:
-                            pass
-                        file_name = file_path
+        try:
+            with open(os.path.join(folder_path, file_path), 'r') as f:
+                for line in f:
+                    if '%MOIN' in line:
+                        units = "in"
+                    elif '%MOMM' in line:
+                        units = "mm"
+                    elif line.startswith('%FS'):
+                        match = format_re.search(line)
+                        if match:
+                            int_digits = int(match.group(1))
+                            dec_digits = int(match.group(2))
+                    elif 'X' in line and 'D0' in line and "G03" not in line:
+                        match = coord_re.match(line)
+                        if match:
+                            try:
+                                x_val = int(match.group(1))
+                                x = x_val / (10 ** dec_digits)
+                                xpoints[x] = f"{match.group(1)}"
+                                x_vals.append(x)
+                            except:
+                                pass
+                            try:
+                                y_val = int(match.group(2))
+                                y = y_val / (10 ** dec_digits)
+                                ypoints[y] = f"{match.group(2)}"
+                                y_vals.append(y)
+                            except:
+                                pass
+                            file_name = file_path
 
-        if not x_vals or not y_vals:
+            if not x_vals or not y_vals:
+                pass
+        except:
             pass
     relief=.10 # Relief percent on the edge of the outline
     return {

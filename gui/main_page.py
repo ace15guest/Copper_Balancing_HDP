@@ -374,7 +374,20 @@ class MainWindow(QMainWindow):
             self.loading_screen.set_progress(idx, f"Converting to array... {file}")
 
         data = multiple_layers(self.arrays)
+        def crop_dict_to_smallest_shape(arr_dict):
+            # Find the smallest shape across all arrays
+            min_rows = min(arr.shape[0] for arr in arr_dict.values())
+            min_cols = min(arr.shape[1] for arr in arr_dict.values())
+            target_shape = (min_rows, min_cols)
 
+            # Crop all arrays to that shape
+            cropped_dict = {
+                key: arr[:min_rows, :min_cols] for key, arr in arr_dict.items()
+            }
+
+            return cropped_dict, target_shape
+
+        cropped_arrays, shape_used = crop_dict_to_smallest_shape(data)
         if self.config['Algorithm']['blurring'] == 'gauss':
             data = blur_tiff_gauss(data, float(self.config['Algorithm']['gauss sigma']))
         elif self.config['Algorithm']['blurring'] == 'box':
@@ -385,6 +398,10 @@ class MainWindow(QMainWindow):
             pass
         elif self.config['Algorithm']['blurring'] == 'MetAve':
             data = met_ave(data, int(self.config['Algorithm']['kernel size']))
+
+        import numpy as np
+
+
 
         # Normalize the data between 0 and 255
         data = (data * 255.0 / np.max(data))
