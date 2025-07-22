@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 import re
-ini_global_path = f"{os.environ["LocalAppData"]}/CuBalancing/Settings/config.ini"
+ini_global_path = f"{os.environ['LocalAppData']}/CuBalancing/Settings/config.ini"
 
 def clear_folder(folder_path):
     """

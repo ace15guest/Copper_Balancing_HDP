@@ -48,11 +48,11 @@ class MainWindow(QMainWindow):
         self.tiff_folder_name = ''  # The folder where tiff files are held
 
         # Default folder locations
-        self.temp_folder = f"{os.environ["Temp"]}/CuBalancing/temp"
-        self.temp_svg_folder = f"{os.environ["Temp"]}/CuBalancing/temp_svg"
-        self.temp_error_folder = f"{os.environ["Temp"]}/CuBalancing/temp_error"
-        self.temp_tiff_folder = f"{os.environ["Temp"]}/CuBalancing/temp_tiff"
-        self.temp_pdf_folder = f"{os.environ["Temp"]}/CuBalancing/temp_pdf"
+        self.temp_folder = f"{os.environ['Temp']}/CuBalancing/temp"
+        self.temp_svg_folder = f"{os.environ['Temp']}/CuBalancing/temp_svg"
+        self.temp_error_folder = f"{os.environ['Temp']}/CuBalancing/temp_error"
+        self.temp_tiff_folder = f"{os.environ['Temp']}/CuBalancing/temp_tiff"
+        self.temp_pdf_folder = f"{os.environ['Temp']}/CuBalancing/temp_pdf"
 
         # Give our object us access to the configuration file
         self.config = app_settings_ini.create_config_parser()
