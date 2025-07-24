@@ -150,7 +150,7 @@ def met_ave(img_array, radius):
 
 
 def scan_gerber_extrema(folder_path):
-    coord_re = re.compile(r'^(?:X(-?\d+))?(?:Y(-?\d+))?D01\*$')
+    coord_re = re.compile(r'^(?:G01)?(?:X(-?\d+))?(?:Y(-?\d+))?D0[13]\*$')
     format_re = re.compile(r'%FS[L|T]X(\d)(\d)Y(\d)(\d)\*%')
     units = "mm"
     int_digits, dec_digits = 2, 4  # Default to 2.4
@@ -171,7 +171,7 @@ def scan_gerber_extrema(folder_path):
                         if match:
                             int_digits = int(match.group(1))
                             dec_digits = int(match.group(2))
-                    elif 'X' in line and 'D0' in line and "G03" not in line:
+                    elif 'X' in line and 'D0' in line:
                         match = coord_re.match(line)
                         if match:
                             try:

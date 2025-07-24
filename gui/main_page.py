@@ -373,7 +373,6 @@ class MainWindow(QMainWindow):
             self.arrays[file] = bitmap_to_array(os.path.join(tiff_folder, file), inverted)
             self.loading_screen.set_progress(idx, f"Converting to array... {file}")
 
-        data = multiple_layers(self.arrays)
         def crop_dict_to_smallest_shape(arr_dict):
             # Find the smallest shape across all arrays
             min_rows = min(arr.shape[0] for arr in arr_dict.values())
@@ -387,7 +386,11 @@ class MainWindow(QMainWindow):
 
             return cropped_dict, target_shape
 
-        cropped_arrays, shape_used = crop_dict_to_smallest_shape(data)
+        cropped_arrays = crop_dict_to_smallest_shape(self.arrays)
+        data = multiple_layers(cropped_arrays[0])
+
+
+        # cropped_arrays, shape_used = crop_dict_to_smallest_shape(data)
         if self.config['Algorithm']['blurring'] == 'gauss':
             data = blur_tiff_gauss(data, float(self.config['Algorithm']['gauss sigma']))
         elif self.config['Algorithm']['blurring'] == 'box':
