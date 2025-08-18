@@ -84,7 +84,7 @@ def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     :return:
     """
     Path(save_folder).mkdir(exist_ok=True, parents=True)
-    command = f'Assets\gerbv\gerbv -x pdf -D {D} -o "{save_path}.pdf" "{file_path}"'
+    command = fr'Assets\gerbv\gerbv -x pdf -D {D} -o "{save_path}.pdf" "{file_path}"'
     subprocess.Popen(command)
     return
 

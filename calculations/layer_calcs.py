@@ -213,6 +213,7 @@ import re
 def scan_gerber_extrema(folder_path):
     COORD_RE = re.compile(r'^(?:G01)?(?:X(-?\d+))?(?:Y(-?\d+))?D0[13]\*$')
     FORMAT_RE = re.compile(r'%FS[L|T]X(\d)(\d)Y(\d)(\d)\*%')
+    file_name = ""
     units = "mm"
     int_digits, dec_digits = 2, 4
     x_vals, y_vals = [], []
@@ -247,10 +248,12 @@ def scan_gerber_extrema(folder_path):
                             y = int(y_str) / (10 ** dec_digits)
                             y_vals.append(y)
                             ypoints[y] = y_str
+                        file_name = file_path
         except:
             continue
 
     return {
+        "file_path": os.path.join(folder_path, file_name),
         "unit": units,
         "xmin": min(x_vals),
         "xmax": max(x_vals),
