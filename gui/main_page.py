@@ -348,7 +348,7 @@ class MainWindow(QMainWindow):
             for idx, file in enumerate(self.files_chosen):
                 self.loading_screen.set_progress(idx, f"Converting to vectorized format... {file}")
                 tiff_name = os.path.join(self.temp_tiff_folder, file)
-                gerber_to_png_gerbv(os.path.join(self.gerber_folder_name, file), self.temp_tiff_folder, tiff_name, dpi=self.config["Algorithm"]["dpi"], scale=1, error_log_path=os.path.join(self.temp_error_folder, file), outline_file=outline_file)
+                gerber_to_png_gerbv(gerb_file=os.path.join(self.gerber_folder_name, file), save_folder=self.temp_tiff_folder, save_path=tiff_name, dpi=self.config["Algorithm"]["dpi"], scale=1, error_log_path=os.path.join(self.temp_error_folder, file), outline_file=outline_file)
                 file_ct += 1
 
             while len(os.listdir(self.temp_tiff_folder)) < file_ct:
