@@ -4,6 +4,7 @@ import re
 from typing import List, Tuple
 from loading.gerber_conversions import gerber_to_png_gerbv
 from loading.img2array import bitmap_to_array
+from calculations.multi_layer import multiple_layers
 # Matches "..._1oz.gbr", "..._0.5oz.gbr", "..._0_5oz.gbr" (case-insensitive)
 OZ_RE = re.compile(r'(\d+(?:[._]\d+)?)\s*oz\b', re.IGNORECASE)
 
@@ -51,5 +52,6 @@ if __name__ == "__main__":
     for file in folder.iterdir():
         name = str(file).split("\\")[-1]
         arrays[name] = bitmap_to_array(file)
+    layers = multiple_layers(arrays)
     print()
 
