@@ -9,7 +9,7 @@ from loading.img2array import bitmap_to_array
 from calculations.multi_layer import multiple_layers
 from plotting.comparing import plot_points_3d
 from calculations.layer_calcs import *
-from calculations.transformation import align_dat_to_gerber
+from calculations.transformation import align_dat_to_gerber, apply_alignment
 
 # Matches "..._1oz.gbr", "..._0.5oz.gbr", "..._0_5oz.gbr" (case-insensitive)
 OZ_RE = re.compile(r'(\d+(?:[._]\d+)?)\s*oz\b', re.IGNORECASE)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         print(f"{path} -> {oz} oz")
         name = path.split("\\")[-1]
         gerber_to_png_gerbv(gerb_file=path, save_folder=temp_tiff_folder,
-                            save_path=rf"{temp_tiff_folder}\{name}.tiff", dpi=1000, scale=1)
+                            save_path=rf"{temp_tiff_folder}\{name}.tiff", dpi=500, scale=1)
     input("Press Enter once everything is complete")
     for file in folder.iterdir():
         name = str(file).split("\\")[-1]
@@ -76,7 +76,6 @@ if __name__ == "__main__":
     layers = met_ave(layers_preblend, radius=400)
     layers = (layers * 55.0 / np.max(layers))
 
-    a, b = align_dat_to_gerber(layers, data)
-    print(a, b)
+    aligned_dat, params = align_dat_to_gerber(layers, data)
     outfile, stats = plot_points_3d(layers, backend="plotly", outfile="test.html")
     print(outfile, stats)
