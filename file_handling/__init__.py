@@ -2,6 +2,7 @@ import os
 import shutil
 from pathlib import Path
 import re
+from typing import List, Tuple, Union
 ini_global_path = f"{os.environ['LocalAppData']}/CuBalancing/Settings/config.ini"
 
 def clear_folder(folder_path):
@@ -114,4 +115,193 @@ def create_outline_gerber_from_file(source_gerber, extrema, output_path):
         f.write(f"X{xmin}Y{ymin}D01*\n")
         f.write("M02*\n")
 
+
+import os
+
+
+def get_global_files(folder_path):
+    """
+    Return a list of files in the given folder that contain 'global' or 'Global'.
+
+    Args:
+        folder_path (str): Path to the folder
+
+    Returns:
+        list: List of matching filenames (full paths)
+    """
+    return [
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if os.path.isfile(os.path.join(folder_path, f))
+           and ("global" in f.lower())  # makes it case-insensitive
+    ]
+
+
+def list_gerbers_with_weights(
+    root: Union[str, Path],
+    patterns: tuple[str, ...] = ("*.gbr", "*.GBR"),
+) -> List[Tuple[str, float]]:
+    """
+    Scan 'root' recursively for Gerber files and infer copper weight from the filename.
+    Works with names such as 'l4_plane_1oz_Q1.gbr', 'l6_plane_0_5oz_LL.gbr', 'sig_0.5oz.gbr', 'pwr_1.0oz.gbr'.
+
+    Accepted weight formats in the name: '1oz', '0.5oz', '0_5oz', '1.0oz' (case-insensitive).
+    Returns:
+        List of (absolute_path, copper_oz)
+    """
+    # Match a number (optionally with . or _) immediately followed by 'oz' anywhere in the stem
+    OZ_RE = re.compile(r'(\d+(?:[._]\d+)?)oz', re.IGNORECASE)
+
+    root = Path(root).resolve()
+    results: List[Tuple[str, float]] = []
+
+    files: List[Path] = []
+    for pat in patterns:
+        files.extend(root.rglob(pat))
+
+    for p in sorted(set(files)):
+        m = OZ_RE.search(p.stem)  # look only at stem (without extension)
+        if not m:
+            continue
+        raw = m.group(1)
+        # allow underscores as decimal separators (e.g., 0_5 -> 0.5)
+        val = float(raw.replace("_", "."))
+        results.append((str(p), val))
+
+    return results
+
+import os
+import time
+from pathlib import Path
+from typing import Iterable, List, Optional, Tuple, Union
+
+def wait_for_folder_complete(
+    folder: Union[str, Path],
+    *,
+    expected_names: Optional[Iterable[str]] = None,  # exact basenames (case-insensitive on Windows)
+    expected_count: Optional[int] = None,            # number of files expected (after filtering)
+    patterns: Tuple[str, ...] = ("*",),              # glob(s) to include, e.g. ("*.dat", "*.gbr")
+    recursive: bool = False,                         # search subfolders too
+    ignore_exts: Tuple[str, ...] = (".tmp", ".part", ".crdownload", ".download", ".~", ".swp"),
+    quiet_period: float = 5.0,                       # seconds with no size/mtime changes
+    poll_interval: float = 1.0,                      # seconds between checks
+    timeout: Optional[float] = None,                 # None = wait forever
+    verbose: bool = True                             # print progress
+) -> List[str]:
+    """
+    Block until the folder appears "complete" per criteria, then return the file paths.
+
+    Completion criteria (all must be satisfied):
+      1) If expected_names is given: all those basenames exist.
+      2) If expected_count is given: number of matched files >= expected_count.
+      3) No *ignored* temp files are present.
+      4) Folder is stable for `quiet_period` (no size/mtime changes to any matched file).
+
+    Notes:
+    - Uses only standard library; safe for network shares.
+    - If neither expected_names nor expected_count is given, completion is just (3) and (4).
+    - Returns the final list of matched files (absolute paths) when complete.
+    - Raises TimeoutError if `timeout` elapses.
+    """
+    start = time.monotonic()
+    folder = Path(folder)
+
+    def _list_files() -> List[Path]:
+        files: List[Path] = []
+        pats = patterns if isinstance(patterns, (tuple, list)) else (patterns,)
+        if recursive:
+            for pat in pats:
+                files.extend(folder.rglob(pat))
+        else:
+            for pat in pats:
+                files.extend(folder.glob(pat))
+        # files only
+        files = [p for p in files if p.is_file()]
+        # drop ignored temp extensions
+        lowered_ign = tuple(e.lower() for e in ignore_exts)
+        files = [p for p in files if not p.suffix.lower().endswith(lowered_ign)]
+        return files
+
+    def _has_ignored_temp() -> bool:
+        pats = patterns if isinstance(patterns, (tuple, list)) else (patterns,)
+        if recursive:
+            it = (folder.rglob(p) for p in pats)
+        else:
+            it = (folder.glob(p) for p in pats)
+        lowered_ign = tuple(e.lower() for e in ignore_exts)
+        for gen in it:
+            for p in gen:
+                if p.is_file() and p.suffix.lower().endswith(lowered_ign):
+                    return True
+        return False
+
+    def _snapshot(files: List[Path]):
+        # map path -> (size, mtime)
+        snap = {}
+        for p in files:
+            try:
+                st = p.stat()
+                snap[str(p)] = (st.st_size, st.st_mtime)
+            except FileNotFoundError:
+                # file vanished between list and stat
+                pass
+        return snap
+
+    # normalize expected names for case-insensitive filesystems
+    expected_set = None
+    if expected_names:
+        expected_set = {str(n).strip() for n in expected_names}
+        # If caller passed full paths, collapse to basenames
+        expected_set = {Path(n).name for n in expected_set}
+
+    last_change_t = time.monotonic()
+    prev_snap = {}
+
+    while True:
+        if timeout is not None and (time.monotonic() - start) > timeout:
+            raise TimeoutError("Timed out waiting for folder to complete.")
+
+        files = _list_files()
+        basenames = {p.name for p in files}
+
+        # Criteria 1: all expected names exist
+        if expected_set is not None:
+            missing = expected_set - basenames
+            have_expected = len(missing) == 0
+        else:
+            have_expected = True
+            missing = set()
+
+        # Criteria 2: count threshold
+        if expected_count is not None:
+            have_count = len(files) >= expected_count
+        else:
+            have_count = True
+
+        # Criterion 3: no temp/partial files present
+        no_temps = not _has_ignored_temp()
+
+        # Criterion 4: stability (no size/mtime changes for quiet_period)
+        snap = _snapshot(files)
+        if snap != prev_snap:
+            last_change_t = time.monotonic()
+            prev_snap = snap
+
+        stable = (time.monotonic() - last_change_t) >= quiet_period
+
+        if verbose:
+            msg = [
+                f"files={len(files)}",
+                f"expected_ok={have_expected}" + (f" (missing: {sorted(missing)})" if not have_expected else ""),
+                f"count_ok={have_count}",
+                f"no_temps={no_temps}",
+                f"stable={stable}",
+            ]
+            print("[wait_for_folder_complete] " + " | ".join(msg))
+
+        if have_expected and have_count and no_temps and stable:
+            # Done — return absolute paths as strings
+            return [str(p.resolve()) for p in files]
+
+        time.sleep(poll_interval)
 

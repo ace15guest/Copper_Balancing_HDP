@@ -310,6 +310,164 @@ def apply_alignment(mov_arr, params, out_shape, order=1, cval=0.0):
                    order=order, cval=cval, preserve_range=True)
     return aligned.astype(np.float32)
 
+import numpy as np
+
+def fill_nans_nd(arr, method="linear", max_iters=200, tol=1e-5, kernel_size=3):
+    """
+    Fill NaNs in an N-D array using:
+      - method='linear'   : scipy.interpolate.griddata with nearest fallback
+      - method='nearest'  : scipy.ndimage.distance_transform_edt
+      - method='iterative': N-D neighbor averaging via scipy.ndimage.convolve
+
+    Parameters
+    ----------
+    arr : np.ndarray, shape (D0, D1, ..., Dn)
+        N-D array with NaNs to fill.
+    method : {'linear','iterative','nearest'}
+    max_iters : int
+        For 'iterative', max passes.
+    tol : float
+        For 'iterative', stop when max |Δ| on formerly-NaN entries < tol.
+    kernel_size : int
+        For 'iterative', size of the averaging window along each axis (odd).
+
+    Returns
+    -------
+    filled : np.ndarray
+        Copy of arr with NaNs filled.
+    """
+    if not isinstance(arr, np.ndarray):
+        raise TypeError("arr must be a NumPy ndarray")
+
+    if arr.ndim < 1:
+        raise ValueError("arr must be at least 1-D")
+
+    filled = arr.astype(np.float64, copy=True)  # work in float for NaNs
+    nan_mask = np.isnan(filled)
+
+    if not np.any(nan_mask):
+        return arr.copy()
+
+    if np.all(nan_mask):
+        raise ValueError("All values are NaN; nothing to interpolate from.")
+
+    if method == "nearest":
+        from scipy.ndimage import distance_transform_edt
+        known = ~nan_mask
+        # distance_transform_edt measures distance to nearest zero; pass (~known)
+        _, ind = distance_transform_edt(~known, return_indices=True)
+        filled[nan_mask] = filled[tuple(ind[:, nan_mask])]
+        return filled.astype(arr.dtype, copy=False)
+
+    if method == "linear":
+        from scipy.interpolate import griddata
+
+        # Get coordinates of known and missing points in N-D
+        coords_known = np.array(np.nonzero(~nan_mask)).T  # (M, N)
+        vals_known = filled[~nan_mask]
+        coords_miss  = np.array(np.nonzero(nan_mask)).T   # (K, N)
+
+        lin_vals = griddata(coords_known, vals_known, coords_miss, method="linear")
+
+        # Fallback for points outside convex hull
+        need_nn = np.isnan(lin_vals)
+        if np.any(need_nn):
+            nn_vals = griddata(coords_known, vals_known, coords_miss[need_nn], method="nearest")
+            lin_vals[need_nn] = nn_vals
+
+        filled[nan_mask] = lin_vals
+        return filled.astype(arr.dtype, copy=False)
+
+    if method == "iterative":
+        from scipy.ndimage import convolve
+
+        if kernel_size % 2 != 1 or kernel_size < 3:
+            raise ValueError("kernel_size should be an odd integer >= 3")
+
+        data = filled.copy()
+        data[nan_mask] = 0.0
+        weights = (~nan_mask).astype(np.float64)
+
+        # N-D uniform kernel (e.g., 3x3x...x3)
+        kernel = np.ones((kernel_size,) * arr.ndim, dtype=np.float64)
+
+        prev_vals = data[nan_mask]
+        for _ in range(max_iters):
+            num = convolve(data, kernel, mode="nearest")
+            den = convolve(weights, kernel, mode="nearest")
+
+            upd_mask = nan_mask & (den > 0)
+            new_vals = num[upd_mask] / den[upd_mask]
+
+            data[upd_mask] = new_vals
+            weights[upd_mask] = 1.0  # become "known" for subsequent passes
+
+            cur_vals = data[nan_mask]
+            max_change = np.nanmax(np.abs(cur_vals - prev_vals))
+            if max_change < tol:
+                break
+            prev_vals = cur_vals
+
+        filled[nan_mask] = data[nan_mask]
+        return filled.astype(arr.dtype, copy=False)
+
+    raise ValueError("method must be 'linear', 'iterative', or 'nearest'")
+from skimage.transform import resize
+
+def shrink_array(arr, out_shape, order=1):
+    """
+    Resize an array to out_shape.
+    Good for downsampling when there are no NaNs.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input array.
+    out_shape : (H, W)
+        Target shape.
+    order : int
+        Interpolation order: 1=bilinear (smooth), 3=bicubic (sharper).
+
+    Returns
+    -------
+    np.ndarray
+        Resized array with values scaled to preserve range.
+    """
+    return resize(
+        arr, out_shape,
+        order=order,
+        mode="reflect",
+        anti_aliasing=True,
+        preserve_range=True
+    ).astype(arr.dtype)
+
+def rescale_to_shared_minmax(a, b):
+    """
+    Affinely rescale A and B so both end up with the same min/max:
+      min(A') = min(B') = min(A,B)
+      max(A') = max(B') = max(A,B)
+    """
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+
+    gmin = min(np.nanmin(a), np.nanmin(b))
+    gmax = max(np.nanmax(a), np.nanmax(b))
+    if not np.isfinite(gmin) or not np.isfinite(gmax):
+        raise ValueError("Inputs contain no finite values.")
+    if gmax == gmin:
+        raise ValueError("Global range is zero; cannot rescale.")
+
+    def scale(x):
+        xmin = np.nanmin(x)
+        xmax = np.nanmax(x)
+        if xmax == xmin:
+            raise ValueError("One input has zero range; cannot map to a nonzero global range.")
+        return (x - xmin) / (xmax - xmin) * (gmax - gmin) + gmin
+
+    a2 = scale(a)
+    b2 = scale(b)
+    return a2, b2, (gmin, gmax)
+
 # ----------------- Example -----------------
 if __name__ == "__main__":
     # dummy example arrays

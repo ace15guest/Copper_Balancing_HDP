@@ -173,6 +173,93 @@ def plot_overlay_scatter(arr_ref, arr_mov, title=None, use_nonzero_mask=True,
 
     plt.tight_layout()
     plt.show()
+def plot_point_clouds_3d(
+    A, B, *,
+    stride=1,
+    spacing_A=None, spacing_B=None,   # 2D: (dx,dy) | 3D: (dx,dy,dz)
+    max_points=200_000,
+    size_A=2, size_B=2,
+    opacity_A=0.7, opacity_B=0.7,
+    title="Point clouds (A=blue, B=green)"
+):
+    """
+    Plot two ndarrays as 3D point clouds.
+      - If 2D (H,W): points (x,y,z) with z = array value.
+      - If 3D (Z,Y,X): points at voxel centers; z = Z index (use spacing_* to scale).
+
+    Parameters
+    ----------
+    A, B : np.ndarray
+    stride : int
+        Subsample step along each axis (use >1 for speed).
+    spacing_A, spacing_B : tuple or None
+        Physical spacing per axis. 2D -> (dx,dy), 3D -> (dx,dy,dz).
+        Defaults to 1.0 for each axis if None.
+    max_points : int
+        If exceeded, a random subset is plotted.
+    size_A, size_B : int
+        Marker sizes for A and B.
+    opacity_A, opacity_B : float
+        Marker opacities.
+    title : str
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+    """
+    import numpy as np
+    import plotly.graph_objects as go
+
+    rng = np.random.default_rng()
+
+    def to_points(arr, spacing):
+        arr = np.asarray(arr)
+        if arr.ndim == 2:
+            H, W = arr.shape
+            dx, dy = (spacing if spacing is not None else (1.0, 1.0))
+            a = arr[::stride, ::stride]
+            yy, xx = np.nonzero(np.isfinite(a))
+            x = (xx * stride) * dx
+            y = (yy * stride) * dy
+            z = a[yy, xx].astype(float)
+        elif arr.ndim == 3:
+            Z, Y, X = arr.shape
+            dx, dy, dz = (spacing if spacing is not None else (1.0, 1.0, 1.0))
+            a = arr[::stride, ::stride, ::stride]
+            mask = np.isfinite(a)
+            zz, yy, xx = np.nonzero(mask)
+            x = (xx * stride) * dx
+            y = (yy * stride) * dy
+            z = (zz * stride) * dz  # z = voxel coord; values can be encoded by color if desired
+        else:
+            raise ValueError("Only 2D or 3D ndarrays are supported.")
+        n = x.size
+        if n > max_points:
+            idx = rng.choice(n, size=max_points, replace=False)
+            x, y, z = x[idx], y[idx], z[idx]
+        return x.astype(float), y.astype(float), z.astype(float)
+
+    xA, yA, zA = to_points(A, spacing_A)
+    xB, yB, zB = to_points(B, spacing_B)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter3d(
+        x=xA, y=yA, z=zA, mode="markers",
+        marker=dict(size=size_A, color="blue", opacity=opacity_A),
+        name="A (blue)"
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=xB, y=yB, z=zB, mode="markers",
+        marker=dict(size=size_B, color="green", opacity=opacity_B),
+        name="B (green)"
+    ))
+    fig.update_layout(
+        title=title,
+        scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z",
+                   aspectmode="data"),
+        legend=dict(orientation="h", y=1.02, x=1, xanchor="right")
+    )
+    return fig
 
 # ---------- example usage ----------
 if __name__ == "__main__":

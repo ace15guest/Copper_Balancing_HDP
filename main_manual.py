@@ -7,10 +7,10 @@ import pandas as pd
 from loading.gerber_conversions import gerber_to_png_gerbv
 from loading.img2array import bitmap_to_array
 from calculations.multi_layer import multiple_layers
-from plotting.comparing import plot_points_3d
+from plotting.comparing import plot_points_3d, plot_point_clouds_side_by_side_same_cmap
 from calculations.layer_calcs import *
-from calculations.transformation import align_dat_to_gerber, apply_alignment
-
+from calculations.transformation import align_dat_to_gerber, apply_alignment, fill_nans_nd, shrink_array, rescale_to_shared_minmax
+from calculations.comparison import *
 # Matches "..._1oz.gbr", "..._0.5oz.gbr", "..._0_5oz.gbr" (case-insensitive)
 OZ_RE = re.compile(r'(\d+(?:[._]\d+)?)\s*oz\b', re.IGNORECASE)
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     orig_path = r"C:\Users\Asa Guest\Downloads\files\CuBalanceDatFiles\TopDatFiles\ACCL-890K-01-Q1_Top_Global.dat"
     data = np.loadtxt(orig_path, delimiter="\t")
     data = np.where(data == 9999.0, np.nan, data)
-
+    data = fill_nans_nd(data, 'iterative')
     # Get grid coordinates
     nrows, ncols = data.shape
     y_idx, x_idx = np.indices((nrows, ncols))
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         print(f"{path} -> {oz} oz")
         name = path.split("\\")[-1]
         gerber_to_png_gerbv(gerb_file=path, save_folder=temp_tiff_folder,
-                            save_path=rf"{temp_tiff_folder}\{name}.tiff", dpi=500, scale=1)
+                            save_path=rf"{temp_tiff_folder}\{name}.tiff", dpi=400, scale=1)
     input("Press Enter once everything is complete")
     for file in folder.iterdir():
         name = str(file).split("\\")[-1]
@@ -74,8 +74,18 @@ if __name__ == "__main__":
     layers_preblend = multiple_layers(arrays)
     # layers = blur_tiff_gauss(layers_preblend, sigma=20)
     layers = met_ave(layers_preblend, radius=400)
-    layers = (layers * 55.0 / np.max(layers))
+    layers_shrink = shrink_array(layers, data.shape)
+    layers_shrink, data_shrink, scale = rescale_to_shared_minmax(layers_shrink, data)
 
-    aligned_dat, params = align_dat_to_gerber(layers, data)
-    outfile, stats = plot_points_3d(layers, backend="plotly", outfile="test.html")
-    print(outfile, stats)
+    metrics = compare_arrays_metrics(layers_shrink, data_shrink)
+    fig_comp = comparison_scatter_and_hist(layers_shrink, data_shrink, title="DAT vs Gerber-scaled")
+
+    for k, v in metrics.items():
+        print(f"{k:>18}: {v}")
+
+    outfile_layer, stats_layer = plot_points_3d(layers_shrink, backend="plotly", outfile="layers.html")
+    outfile_data, stats_data = plot_points_3d(data_shrink, backend="plotly", outfile="data.html")
+    fig = plot_point_clouds_side_by_side_same_cmap(layers_shrink, data_shrink)
+    fig.show()
+    fig_comp.show()
+    input("Press Enter once everything is complete")
