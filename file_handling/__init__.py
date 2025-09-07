@@ -182,7 +182,7 @@ def wait_for_folder_complete(
     expected_count: Optional[int] = None,            # number of files expected (after filtering)
     patterns: Tuple[str, ...] = ("*",),              # glob(s) to include, e.g. ("*.dat", "*.gbr")
     recursive: bool = False,                         # search subfolders too
-    ignore_exts: Tuple[str, ...] = (".tmp", ".part", ".crdownload", ".download", ".~", ".swp"),
+    ignore_exts: Tuple[str, ...] = (".tmp_id", ".part", ".crdownload", ".download", ".~", ".swp"),
     quiet_period: float = 5.0,                       # seconds with no size/mtime changes
     poll_interval: float = 1.0,                      # seconds between checks
     timeout: Optional[float] = None,                 # None = wait forever

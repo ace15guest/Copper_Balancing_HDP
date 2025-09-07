@@ -441,17 +441,19 @@ def shrink_array(arr, out_shape, order=1):
         preserve_range=True
     ).astype(arr.dtype)
 
-def rescale_to_shared_minmax(a, b):
+def rescale_to_shared_minmax(calculated_array, akro_array):
     """
     Affinely rescale A and B so both end up with the same min/max:
       min(A') = min(B') = min(A,B)
       max(A') = max(B') = max(A,B)
     """
-    a = np.asarray(a, dtype=np.float64)
-    b = np.asarray(b, dtype=np.float64)
+    calculated_array = np.asarray(calculated_array, dtype=np.float64)
+    akro_array = np.asarray(akro_array, dtype=np.float64)
 
-    gmin = min(np.nanmin(a), np.nanmin(b))
-    gmax = max(np.nanmax(a), np.nanmax(b))
+    # gmin = min(np.nanmin(a), np.nanmin(b))
+    # gmax = min(np.nanmax(a), np.nanmax(b))
+    gmin = np.nanmin(akro_array)
+    gmax = np.nanmax(akro_array)
     if not np.isfinite(gmin) or not np.isfinite(gmax):
         raise ValueError("Inputs contain no finite values.")
     if gmax == gmin:
@@ -464,8 +466,8 @@ def rescale_to_shared_minmax(a, b):
             raise ValueError("One input has zero range; cannot map to a nonzero global range.")
         return (x - xmin) / (xmax - xmin) * (gmax - gmin) + gmin
 
-    a2 = scale(a)
-    b2 = scale(b)
+    a2 = scale(calculated_array)
+    b2 = scale(akro_array)
     return a2, b2, (gmin, gmax)
 
 # ----------------- Example -----------------

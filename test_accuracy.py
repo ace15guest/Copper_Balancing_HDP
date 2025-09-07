@@ -1,6 +1,8 @@
 import numpy as np
 import time
 from pathlib import Path
+from openpyxl import Workbook, load_workbook
+import os
 # custom imports
 from file_handling import get_global_files, list_gerbers_with_weights, wait_for_folder_complete, clear_folder
 from calculations.transformation import *
@@ -18,23 +20,34 @@ temp_tiff_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Asse
 temp_tiff_folder_path = Path(temp_tiff_folder)
 
 Q1_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q1"
-LR_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
-UL_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
-UR_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
+Q3_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
+Q2_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
+Q4_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
 dpi_results = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
 fills = ['nearest', 'idw', 'biharmonic', 'local_mean']
 radii = [50, 100, 200, 300, 400, 500, 600, 700, 800]
+# Create the excel file
+excel_output_path = rf"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\results.xlsx"
+if not os.path.exists(excel_output_path):
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Iteration", "Value"])  # headers
+    wb.save(excel_output_path)
 
 Quartile_loc = ""
 if __name__ == '__main__':
+    # Load the Workbook
+    wb = load_workbook(excel_output_path)
+
+
     # Read in all global DAT forms
     top_data_files = get_global_files(top_data_loc)
     bot_data_files = get_global_files(bot_data_loc)
     # Gerber Files
     Q1_Gerber_files = list_gerbers_with_weights(Q1_folder)
-    LR_Gerber_files = list_gerbers_with_weights(LR_folder)
-    UL_Gerber_files = list_gerbers_with_weights(UL_folder)
-    UR_Gerber_files = list_gerbers_with_weights(UR_folder)
+    Q3_Gerber_files = list_gerbers_with_weights(Q3_folder)
+    Q2_Gerber_files = list_gerbers_with_weights(Q2_folder)
+    Q4_Gerber_files = list_gerbers_with_weights(Q4_folder)
     # Cycle through the dpi
     for edge_fill in fills:
         for dpi in dpi_results:
@@ -44,7 +57,8 @@ if __name__ == '__main__':
                 # Cycle through the Top Global Data Files
                 for top_global_path in top_data_files:
                     # Material and Supplier
-                    mat_sup_id = '-'.join(top_global_path.split('\\')[-1].split('-')[0:3])
+                    tmp_id = '-'.join(top_global_path.split('\\')[-1].split('-')[0:3])
+                    mat_sup_id = f"{tmp_id}_EF{edge_fill}_DPI{dpi}_R{radius}"
                     mat_sup_folder = '-'.join(top_global_path.split('\\')[-1].split('-')[0:2])
                     # Clear the temporary tiff folder
                     print("Clearing Temporary Tiff Folder")
@@ -63,26 +77,29 @@ if __name__ == '__main__':
                     wait_for_calcs = False
                     if "Q1" in top_global_path:
                         Quartile_loc = "Q1"
-                        for gerber_path in Q1_Gerber_files:
-                            name = gerber_path[0].split("\\")[-1].split(".gbr")[0]
-                            layer_names_for_blend.append(name)
-                            layer_weights_for_blend[name] = gerber_path[1]
-                            if name in arrays:
-                                continue
-                            gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder=temp_tiff_folder, save_path=rf"{temp_tiff_folder}\{name}", dpi=dpi, scale=1)  # Convert the gerbers to arrays
-                            wait_for_calcs = True
+                        gerber_files = Q1_Gerber_files
+                    elif "Q2" in top_global_path:
+                        Quartile_loc = "Q2"
+                        gerber_files = Q2_Gerber_files
+                    elif "Q3" in top_global_path:
+                        Quartile_loc = "Q3"
+                        gerber_files = Q3_Gerber_files
+                    elif "Q4" in top_global_path:
+                        Quartile_loc = "Q4"
+                        gerber_files = Q4_Gerber_files
+                    else:
+                        gerber_files = []
+                    for gerber_path in gerber_files:
+                        name = gerber_path[0].split("\\")[-1].split(".gbr")[0]
+                        layer_names_for_blend.append(name)
+                        layer_weights_for_blend[name] = gerber_path[1]
+                        if name in arrays:
+                            continue
+                        gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder=temp_tiff_folder, save_path=rf"{temp_tiff_folder}\{name}", dpi=dpi, scale=1)  # Convert the gerbers to arrays
+                        wait_for_calcs = True
+                    try:
                         if wait_for_calcs:
                             wait_for_folder_complete(temp_tiff_folder, expected_count=20)  # Wait for the 20 files to all show up
-                        recalculate_array = True
-
-                    elif "Q2" in top_global_path:
-                        pass
-                    elif "Q3" in top_global_path:
-                        pass
-                    elif "Q4" in top_global_path:
-                        pass
-
-                    if recalculate_array:
                         # Now convert the files in the temp_tiff_folder to bitmaps
                         for file in temp_tiff_folder_path.iterdir():
                             name_key = str(file).split("\\")[-1].split(".tif")[0]
@@ -94,9 +111,10 @@ if __name__ == '__main__':
                         calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, scale = rescale_to_shared_minmax(calculated_layers_blended_shrink, dat_file_9999_filled)
                         plot_save_folder = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\{mat_sup_folder}\{Quartile_loc}"
                         plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
-
                         stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
                         plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
+                    except Exception as error:
+                        print(error)
                         # fig = plot_point_clouds_side_by_side_same_cmap(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale)
                         # fig.show()
 
