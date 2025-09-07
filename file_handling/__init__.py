@@ -186,7 +186,7 @@ def wait_for_folder_complete(
     quiet_period: float = 5.0,                       # seconds with no size/mtime changes
     poll_interval: float = 1.0,                      # seconds between checks
     timeout: Optional[float] = None,                 # None = wait forever
-    verbose: bool = True                             # print progress
+    verbose: bool = False                             # print progress
 ) -> List[str]:
     """
     Block until the folder appears "complete" per criteria, then return the file paths.

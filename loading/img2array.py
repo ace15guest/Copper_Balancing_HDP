@@ -6,7 +6,7 @@ import numpy as np
 
 def bitmap_to_array(bitmap_path, inverted=False):
     # Open the image file
-    print('Converting to array')
+    # print('Converting to array')
     array = None
     try:
         # TODO: Allow this to retry up to X times
@@ -15,8 +15,8 @@ def bitmap_to_array(bitmap_path, inverted=False):
                 # Convert the image data to a numpy array
                 gray = img.convert('L') # Convert the image to a gray scale
                 array = np.array(gray)
-                print(array.shape)
-                print('Converted to array')
+                # print(array.shape)
+                # print('Converted to array')
                 img.close()
     except Exception as e:
         print(e)

@@ -23,22 +23,29 @@ Q1_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerb
 Q3_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
 Q2_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
 Q4_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
-dpi_results = [100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
+dpi_results = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
 fills = ['nearest', 'idw', 'biharmonic', 'local_mean']
-radii = [50, 100, 200, 300, 400, 500, 600, 700, 800]
+radii = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800]
 # Create the excel file
 excel_output_path = rf"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\results.xlsx"
 if not os.path.exists(excel_output_path):
     wb = Workbook()
     ws = wb.active
-    ws.append(["Iteration", "Value"])  # headers
+    if ws.max_row > 1:
+        ws.delete_rows(2, ws.max_row - 1)
+    ws.append([
+        "Identifier", "quartile", "edge_fill", "dpi", "radius", "mat_sup_id", "scale",
+        "n_points", "rmse", "mae", "bias", "pearson_r", "spearman_r", "r2",
+        "svd_var_explained", "slope", "intercept", "lambda_ratio", "notes"
+    ])
     wb.save(excel_output_path)
+
 
 Quartile_loc = ""
 if __name__ == '__main__':
     # Load the Workbook
     wb = load_workbook(excel_output_path)
-
+    ws = wb.active
 
     # Read in all global DAT forms
     top_data_files = get_global_files(top_data_loc)
@@ -61,7 +68,7 @@ if __name__ == '__main__':
                     mat_sup_id = f"{tmp_id}_EF{edge_fill}_DPI{dpi}_R{radius}"
                     mat_sup_folder = '-'.join(top_global_path.split('\\')[-1].split('-')[0:2])
                     # Clear the temporary tiff folder
-                    print("Clearing Temporary Tiff Folder")
+                    # print("Clearing Temporary Tiff Folder")
                     clear_folder(temp_tiff_folder)
                     time.sleep(5)
                     # Create list of layer names to be blended
@@ -70,9 +77,13 @@ if __name__ == '__main__':
                     recalculate_array = False  # If we have the array already stored in memory, no need to recalculate anything
 
                     # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan
-                    dat_file_orig = np.loadtxt(top_global_path, delimiter="\t")
-                    dat_file_filled = np.where(dat_file_orig == 9999.0, np.nan, dat_file_orig)
-                    dat_file_9999_filled = fill_nans_nd(dat_file_filled, 'iterative')
+                    try:
+                        dat_file_orig = np.loadtxt(top_global_path, delimiter="\t")
+                        dat_file_filled = np.where(dat_file_orig == 9999.0, np.nan, dat_file_orig)
+                        dat_file_9999_filled = fill_nans_nd(dat_file_filled, 'iterative')
+                    except Exception as error:
+                        print(error)
+                        continue
                     #Wait for calculations
                     wait_for_calcs = False
                     if "Q1" in top_global_path:
@@ -113,6 +124,15 @@ if __name__ == '__main__':
                         plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
                         stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
                         plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
+                        ws.append([
+                            f'{Quartile_loc}_{mat_sup_id}', Quartile_loc, edge_fill, dpi, radius, mat_sup_id, str(scale),
+                            stats.get("n_points"), stats.get("rmse"), stats.get("mae"), stats.get("bias"),
+                            stats.get("pearson_r"), stats.get("spearman_r"), stats.get("r2"),
+                            stats.get("svd_var_explained"), stats.get("slope"), stats.get("intercept"),
+                            stats.get("lambda_ratio"), stats.get("text")
+                        ])
+                        wb.save(excel_output_path)
+                        print(f"Complete: {Quartile_loc}_{mat_sup_id}")
                     except Exception as error:
                         print(error)
                         # fig = plot_point_clouds_side_by_side_same_cmap(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale)
