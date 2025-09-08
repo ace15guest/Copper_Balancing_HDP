@@ -23,9 +23,9 @@ Q1_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerb
 Q3_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
 Q2_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
 Q4_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
-dpi_results = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
-fills = ['nearest', 'idw', 'biharmonic', 'local_mean']
-radii = [25, 50, 100, 200, 300, 400, 500, 600, 700, 800]
+dpi_results = [200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
+fills = ['biharmonic','idw','nearest',   'local_mean']
+radii = [25, 50, 100, 200]
 # Create the excel file
 excel_output_path = rf"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\results.xlsx"
 if not os.path.exists(excel_output_path):
@@ -70,20 +70,13 @@ if __name__ == '__main__':
                     # Clear the temporary tiff folder
                     # print("Clearing Temporary Tiff Folder")
                     clear_folder(temp_tiff_folder)
-                    time.sleep(5)
+                    time.sleep(1)
                     # Create list of layer names to be blended
                     layer_names_for_blend = []
                     layer_weights_for_blend = {}
                     recalculate_array = False  # If we have the array already stored in memory, no need to recalculate anything
 
-                    # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan
-                    try:
-                        dat_file_orig = np.loadtxt(top_global_path, delimiter="\t")
-                        dat_file_filled = np.where(dat_file_orig == 9999.0, np.nan, dat_file_orig)
-                        dat_file_9999_filled = fill_nans_nd(dat_file_filled, 'iterative')
-                    except Exception as error:
-                        print(error)
-                        continue
+
                     #Wait for calculations
                     wait_for_calcs = False
                     if "Q1" in top_global_path:
@@ -100,6 +93,21 @@ if __name__ == '__main__':
                         gerber_files = Q4_Gerber_files
                     else:
                         gerber_files = []
+
+                    plot_save_folder = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\{mat_sup_folder}\{Quartile_loc}"
+                    plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
+                    if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists():
+                        print(f"Complete: {Quartile_loc}_{mat_sup_id}")
+                        continue
+                    # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan
+                    try:
+                        dat_file_orig = np.loadtxt(top_global_path, delimiter="\t")
+                        dat_file_filled = np.where(dat_file_orig == 9999.0, np.nan, dat_file_orig)
+                        dat_file_9999_filled = fill_nans_nd(dat_file_filled, 'iterative')
+                    except Exception as error:
+                        print(error)
+                        continue
+
                     for gerber_path in gerber_files:
                         name = gerber_path[0].split("\\")[-1].split(".gbr")[0]
                         layer_names_for_blend.append(name)
@@ -120,8 +128,6 @@ if __name__ == '__main__':
                         calculated_layers_blended = met_ave(calculated_layers_preblend_edge_mask, radius=radius)
                         calculated_layers_blended_shrink = shrink_array(calculated_layers_blended, dat_file_9999_filled.shape)
                         calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, scale = rescale_to_shared_minmax(calculated_layers_blended_shrink, dat_file_9999_filled)
-                        plot_save_folder = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\{mat_sup_folder}\{Quartile_loc}"
-                        plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
                         stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
                         plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
                         ws.append([
