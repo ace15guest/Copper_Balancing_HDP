@@ -63,7 +63,7 @@ if __name__ == '__main__':
     Q2_Gerber_files = list_gerbers_with_weights(Q2_folder)
     Q4_Gerber_files = list_gerbers_with_weights(Q4_folder)
     # Cycle through the dpi
-    print(top_data_files)
+
     for dpi in dpi_results:
         for edge_fill in fills:
 

@@ -122,31 +122,22 @@ def create_outline_gerber_from_file(source_gerber, extrema, output_path):
 import os
 
 
-# def get_global_files(folder_path):
-#     """
-#     Return a list of files in the given folder that contain 'global' or 'Global'.
-#
-#     Args:
-#         folder_path (str): Path to the folder
-#
-#     Returns:
-#         list: List of matching filenames (full paths)
-#     """
-#     return [
-#         os.path.join(folder_path, f)
-#         for f in os.listdir(folder_path)
-#         if os.path.isfile(os.path.join(folder_path, f))
-#            and ("global" in f.lower())  # makes it case-insensitive
-#     ]
-from pathlib import Path
+def get_global_files(folder_path):
+    """
+    Return a list of files in the given folder that contain 'global' or 'Global'.
 
-def get_global_files(folder_path) -> list[str]:
-    p = Path(folder_path)
-    print(p)
-    for f in p.iterdir():
-        print(f)
-    # casefold() is even safer than lower() for case-insensitive matching
-    return [str(f) for f in p.iterdir() if f.is_file() and "global" in f.name.casefold()]
+    Args:
+        folder_path (str): Path to the folder
+
+    Returns:
+        list: List of matching filenames (full paths)
+    """
+    return [
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if os.path.isfile(os.path.join(folder_path, f))
+           and ("global" in f.lower())  # makes it case-insensitive
+    ]
 
 
 def list_gerbers_with_weights(
