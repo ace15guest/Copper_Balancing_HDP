@@ -23,9 +23,9 @@ Q1_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerb
 Q3_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
 Q2_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
 Q4_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
-dpi_results = [200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
-fills = ['biharmonic','idw','nearest',   'local_mean']
-radii = [25, 50, 100, 200]
+dpi_results = [100, 150, 200, 400, 450, 500, 550, 600, 650, 700]
+fills = ['max_percent', 'mean_percent', 'biharmonic','idw','nearest',   'local_mean']
+radii = [75, 200, 400, 600]
 # Create the excel file
 excel_output_path = rf"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\results.xlsx"
 if not os.path.exists(excel_output_path):
@@ -56,8 +56,8 @@ if __name__ == '__main__':
     Q2_Gerber_files = list_gerbers_with_weights(Q2_folder)
     Q4_Gerber_files = list_gerbers_with_weights(Q4_folder)
     # Cycle through the dpi
-    for edge_fill in fills:
-        for dpi in dpi_results:
+    for dpi in dpi_results:
+        for edge_fill in fills:
             for radius in radii:
                 arrays = {}
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
                     # Clear the temporary tiff folder
                     # print("Clearing Temporary Tiff Folder")
                     clear_folder(temp_tiff_folder)
-                    time.sleep(1)
+                    time.sleep(.1)
                     # Create list of layer names to be blended
                     layer_names_for_blend = []
                     layer_weights_for_blend = {}
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                     plot_save_folder = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\{mat_sup_folder}\{Quartile_loc}"
                     plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
                     if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists():
-                        print(f"Complete: {Quartile_loc}_{mat_sup_id}")
+                        print(f"Completed Prior: {Quartile_loc}_{mat_sup_id}")
                         continue
                     # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan
                     try:

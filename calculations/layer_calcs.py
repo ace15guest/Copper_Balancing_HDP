@@ -125,27 +125,90 @@ def met_ave_old(img_array, radius):
 
     return result
 
-def met_ave(img_array, radius):
+# def met_ave(img_array, radius):
+#     """
+#     Optimized mean calculation using an integral image for fast local averaging.
+#
+#     :param img_array: 2D numpy array (image).
+#     :param radius: Neighborhood radius for averaging.
+#     :return: 2D numpy array with local means.
+#     """
+#     h, w = img_array.shape
+#     normalization_factor = (2 * radius + 1) ** 2
+#
+#     # Compute integral image (cumulative sum)
+#     integral = np.pad(img_array, ((1, 0), (1, 0)), mode='constant', constant_values=0).cumsum(axis=0).cumsum(axis=1)
+#
+#     # Compute sums using the integral image
+#     x1, y1 = np.meshgrid(np.arange(w), np.arange(h), indexing="xy")
+#     x2, y2 = np.clip(x1 + radius + 1, 0, w), np.clip(y1 + radius + 1, 0, h)
+#     x1, y1 = np.clip(x1 - radius, 0, w), np.clip(y1 - radius, 0, h)
+#
+#     result = (integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]) / normalization_factor
+#     return result
+
+
+import numpy as np
+
+def met_ave(img_array: np.ndarray, radius: int, *, ignore_zeros: bool = True, empty_value=np.nan) -> np.ndarray:
     """
-    Optimized mean calculation using an integral image for fast local averaging.
+    Local mean via integral images, excluding invalid pixels from the average.
 
-    :param img_array: 2D numpy array (image).
-    :param radius: Neighborhood radius for averaging.
-    :return: 2D numpy array with local means.
+    - Excludes NaNs always.
+    - If ignore_zeros=True (default), excludes zeros as well (treats them like "no data"/padding).
+    - Divides by the number of valid pixels actually inside the window (handles edges correctly).
+    - If a window has no valid pixels, returns `empty_value` (default: np.nan).
+
+    Parameters
+    ----------
+    img_array : (H, W) array-like
+        Input image.
+    radius : int
+        Half-window radius; window size = (2*radius+1)^2.
+    ignore_zeros : bool, default True
+        Whether to exclude zeros from the mean.
+    empty_value : scalar, default np.nan
+        Value to place where a window has no valid pixels.
+
+    Returns
+    -------
+    (H, W) float array
+        Local means with invalids excluded.
     """
-    h, w = img_array.shape
-    normalization_factor = (2 * radius + 1) ** 2
+    a = np.asarray(img_array, dtype=np.float64)
+    h, w = a.shape
 
-    # Compute integral image (cumulative sum)
-    integral = np.pad(img_array, ((1, 0), (1, 0)), mode='constant', constant_values=0).cumsum(axis=0).cumsum(axis=1)
+    # Valid mask: finite and (nonzero if requested)
+    valid = np.isfinite(a)
+    if ignore_zeros:
+        valid &= (a != 0)
 
-    # Compute sums using the integral image
-    x1, y1 = np.meshgrid(np.arange(w), np.arange(h), indexing="xy")
-    x2, y2 = np.clip(x1 + radius + 1, 0, w), np.clip(y1 + radius + 1, 0, h)
-    x1, y1 = np.clip(x1 - radius, 0, w), np.clip(y1 - radius, 0, h)
+    # Zero out invalids for the value-sum integral
+    vals = np.where(valid, a, 0.0)
 
-    result = (integral[y2, x2] - integral[y1, x2] - integral[y2, x1] + integral[y1, x1]) / normalization_factor
-    return result
+    # Build integral images for values and counts (pad 1 row/col up/left for easy box sums)
+    def integral_image(x):
+        return np.pad(x, ((1, 0), (1, 0)), mode='constant', constant_values=0).cumsum(axis=0).cumsum(axis=1)
+
+    I_vals = integral_image(vals)
+    I_cnts = integral_image(valid.astype(np.int32))
+
+    # Coordinates for each pixel's window
+    x0, y0 = np.meshgrid(np.arange(w), np.arange(h), indexing="xy")
+    x1 = np.clip(x0 - radius, 0, w)
+    y1 = np.clip(y0 - radius, 0, h)
+    x2 = np.clip(x0 + radius + 1, 0, w)
+    y2 = np.clip(y0 + radius + 1, 0, h)
+
+    # Box sums via integral images
+    sum_vals = I_vals[y2, x2] - I_vals[y1, x2] - I_vals[y2, x1] + I_vals[y1, x1]
+    cnt_vals = I_cnts[y2, x2] - I_cnts[y1, x2] - I_cnts[y2, x1] + I_cnts[y1, x1]
+
+    # Safe divide; where no valid pixels, put empty_value
+    out = np.full((h, w), empty_value, dtype=np.float64)
+    np.divide(sum_vals, cnt_vals, out=out, where=(cnt_vals > 0))
+
+    return out
 
 
 import os
