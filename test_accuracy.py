@@ -13,21 +13,26 @@ from calculations.layer_calcs import met_ave
 from plotting.comparing import plot_pointclouds_and_heatmaps
 from calculations.padding import fill_border
 from calculations.comparison import align_and_compare
-top_data_loc = r"C:\Users\Asa Guest\Downloads\files\CuBalanceDatFiles\TopDatFiles"  # The folder that holds the top Akro data
-bot_data_loc = r"C:\Users\Asa Guest\Downloads\files\CuBalanceDatFiles\BottomDatFiles"  # The folder that holds the bottom Akro data
+from pathlib import Path
 
-temp_tiff_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\temp_tiff"
+project_folder = Path.cwd()
+
+top_data_loc = str(project_folder / "Assets" / "AkroFiles" / "TopDatFiles")  # The folder that holds the top Akro data
+bot_data_loc = str(project_folder / "Assets" / "AkroFiles" / "BottomDatFiles")  # The folder that holds the bottom Akro data
+
+temp_tiff_folder = str(project_folder / "Assets"  / "temp_tiff")
 temp_tiff_folder_path = Path(temp_tiff_folder)
 
-Q1_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q1"
-Q3_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q3"
-Q2_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q2"
-Q4_folder = r"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\gerbers\Cu_Balancing_Gerber\Q4"
+
+Q1_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q1")
+Q3_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q3")
+Q2_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q2")
+Q4_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q4")
 dpi_results = [100, 150, 200, 400, 450, 500, 550, 600, 650, 700]
 fills = ['max_percent', 'mean_percent', 'biharmonic','idw','nearest',   'local_mean']
 radii = [75, 200, 400, 600]
 # Create the excel file
-excel_output_path = rf"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\results.xlsx"
+excel_output_path = str(project_folder / "Assets" / "Output" / "results.xlsx")
 if not os.path.exists(excel_output_path):
     wb = Workbook()
     ws = wb.active
@@ -94,7 +99,7 @@ if __name__ == '__main__':
                     else:
                         gerber_files = []
 
-                    plot_save_folder = fr"C:\Users\Asa Guest\Documents\Projects\Copper Balancing\Assets\Output\{mat_sup_folder}\{Quartile_loc}"
+                    plot_save_folder = str(project_folder / "Assets" / "Output" / f"{mat_sup_folder}" / f"{Quartile_loc}")
                     plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
                     if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists():
                         print(f"Completed Prior: {Quartile_loc}_{mat_sup_id}")
