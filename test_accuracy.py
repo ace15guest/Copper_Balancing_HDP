@@ -113,7 +113,7 @@ if __name__ == '__main__':
                         dat_file_filled = np.where(dat_file_orig == 9999.0, np.nan, dat_file_orig)
                         dat_file_9999_filled = fill_nans_nd(dat_file_filled, 'iterative')
                     except Exception as error:
-                        print(error)
+                        print("Error Reading DAT: ", error)
                         continue
 
                     for gerber_path in gerber_files:
