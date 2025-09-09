@@ -64,9 +64,11 @@ if __name__ == '__main__':
     Q4_Gerber_files = list_gerbers_with_weights(Q4_folder)
     # Cycle through the dpi
     for dpi in dpi_results:
-        print(dpi)
         for edge_fill in fills:
+            print(edge_fill)
+
             for radius in radii:
+                print(radius)
                 arrays = {}
                 # Cycle through the Top Global Data Files
                 for top_global_path in top_data_files:
