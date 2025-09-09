@@ -142,6 +142,7 @@ from pathlib import Path
 
 def get_global_files(folder_path) -> list[str]:
     p = Path(folder_path)
+    print(p)
     # casefold() is even safer than lower() for case-insensitive matching
     return [str(f) for f in p.iterdir() if f.is_file() and "global" in f.name.casefold()]
 
