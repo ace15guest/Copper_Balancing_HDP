@@ -65,10 +65,10 @@ if __name__ == '__main__':
         for edge_fill in fills:
             for radius in radii:
                 arrays = {}
-
                 # Cycle through the Top Global Data Files
                 for top_global_path in top_data_files:
                     # Material and Supplier
+                    print(top_global_path)
                     tmp_id = '-'.join(top_global_path.split('\\')[-1].split('-')[0:3])
                     mat_sup_id = f"{tmp_id}_EF{edge_fill}_DPI{dpi}_R{radius}"
                     mat_sup_folder = '-'.join(top_global_path.split('\\')[-1].split('-')[0:2])
