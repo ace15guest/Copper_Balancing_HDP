@@ -3,7 +3,10 @@ import shutil
 from pathlib import Path
 import re
 from typing import List, Tuple, Union
-ini_global_path = f"{os.environ['LocalAppData']}/CuBalancing/Settings/config.ini"
+try:
+    ini_global_path = f"{os.environ['LocalAppData']}/CuBalancing/Settings/config.ini"
+except:
+    pass
 
 def clear_folder(folder_path):
     """

@@ -20,7 +20,7 @@ project_folder = Path.cwd()
 top_data_loc = str(project_folder / "Assets" / "AkroFiles" / "TopDatFiles")  # The folder that holds the top Akro data
 bot_data_loc = str(project_folder / "Assets" / "AkroFiles" / "BottomDatFiles")  # The folder that holds the bottom Akro data
 
-temp_tiff_folder = str(project_folder / "Assets"  / "temp_tiff")
+temp_tiff_folder = str(project_folder / "Assets" / "temp_tiff")
 temp_tiff_folder_path = Path(temp_tiff_folder)
 
 
