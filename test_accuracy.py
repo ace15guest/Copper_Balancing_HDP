@@ -49,6 +49,7 @@ if not os.path.exists(excel_output_path):
 Quartile_loc = ""
 print("Hello")
 if __name__ == '__main__':
+    print('hell')
     # Load the Workbook
     wb = load_workbook(excel_output_path)
     ws = wb.active
