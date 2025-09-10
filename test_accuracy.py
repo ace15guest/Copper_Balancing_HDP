@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
                     plot_save_folder = str(project_folder / "Assets" / "Output" / f"{mat_sup_folder}" / f"{Quartile_loc}")
                     plot_save_name = f'{Quartile_loc}_{mat_sup_id}'
-                    if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists():
+                    if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists() or Path('/'.join([plot_save_folder, plot_save_name])+".html").exists():
                         print(f"Completed Prior: {Quartile_loc}_{mat_sup_id}")
                         continue
                     # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan

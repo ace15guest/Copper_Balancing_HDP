@@ -122,7 +122,7 @@ def gerber_to_png_gerbv(
         cmd.append(str(outline))
 
     # 4) Run
-    print(cmd)
+
     if wait:
         # with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
         subprocess.run(cmd, check=True)
