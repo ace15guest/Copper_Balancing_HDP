@@ -112,6 +112,7 @@ def gerber_to_png_gerbv(
     # build command (string so we can use shell redirection cheaply)
     aa_flag = "-a" if anti_alias else ""   # drop AA for speed if you like
     cmd = f'"{gerbv}" -x png {aa_flag} -D {dpi} -o "{out_png}" "{gerb_file}"'
+    print(cmd)
     if outline_file:
         cmd += f' "{outline_file}"'
     if log_path:
