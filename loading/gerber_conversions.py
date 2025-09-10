@@ -85,16 +85,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def gerber_to_png_gerbv(
-    gerb_file,
-    save_folder_temp,
-    save_name,                 # no extension
-    dpi=1500,
-    outline_file=None,
-    log_path=None,
-    wait=True,                # async by default
-    anti_alias=True
-):
+def gerber_to_png_gerbv(gerb_file, save_folder_temp, save_name, dpi=1500, outline_file=None,  log_path=None, wait=True, anti_alias=False):
     # 1) Normalize paths (handle '~', make absolute)
 
     gerb_file = Path(gerb_file).expanduser().resolve()
