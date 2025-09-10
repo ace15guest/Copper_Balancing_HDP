@@ -96,7 +96,7 @@ def gerber_to_png_gerbv(
     anti_alias=True
 ):
     # 1) Normalize paths (handle '~', make absolute)
-    print(save_folder_temp, save_name)
+
     gerb_file = Path(gerb_file).expanduser().resolve()
     save_folder_new = Path(save_folder_temp)
     outline = Path(outline_file).expanduser().resolve() if outline_file else None
@@ -124,8 +124,8 @@ def gerber_to_png_gerbv(
 
     # 4) Run
     if wait:
-        with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
-            subprocess.run(cmd, stdout=logf, stderr=logf, check=True)
+        # with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
+        subprocess.run(cmd, check=True)
         return str(out_png), None
     else:
         # For async, don't keep a file handle open; discard output
