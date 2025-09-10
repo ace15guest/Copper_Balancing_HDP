@@ -83,64 +83,52 @@ from pathlib import Path
 def gerber_to_png_gerbv(
     gerb_file,
     save_folder,
-    save_name,                   # no extension
+    save_name,                 # no extension
     dpi=1500,
-    error_log_path="error.log",
     outline_file=None,
-    out_format="png",            # "png" or "tif"
+    log_path=None,
+    wait=False,                # ← async by default (fast return)
+    anti_alias=True            # set False for a speed bump
 ):
     """
-    Render Gerber(s) to raster via gerbv CLI.
-    - On Linux: `sudo apt install gerbv`
-    - For TIFF, we export PNG then convert with Pillow (pip install pillow).
+    Render Gerber(s) with gerbv. Exports PNG. Returns (output_path, proc_or_None).
+    - Linux: `sudo apt install gerbv`
+    - Windows: add gerbv to PATH (or keep in Assets/gerbv)
     """
-    gerb_file = Path(gerb_file)
-    outline_file = Path(outline_file) if outline_file else None
+    gerb_file = str(gerb_file)
     save_folder = Path(save_folder)
     save_folder.mkdir(parents=True, exist_ok=True)
+    out_png = save_folder / f"{save_name}.png"
 
-    # Locate gerbv (PATH first, then local Assets/gerbv/)
-    gerbv_bin = shutil.which("gerbv")
-    if gerbv_bin is None:
+    # pick gerbv from PATH or fallback to Assets/gerbv
+    gerbv = shutil.which("gerbv")
+    if gerbv is None:
         candidate = Path("Assets") / "gerbv" / ("gerbv.exe" if os.name == "nt" else "gerbv")
         if candidate.exists():
-            gerbv_bin = str(candidate)
+            gerbv = str(candidate)
         else:
             raise FileNotFoundError("gerbv not found in PATH or Assets/gerbv/")
 
-    # We always ask gerbv for PNG (it doesn't natively export TIFF)
-    png_out = save_folder / f"{save_name}.png"
-
-    cmd = [
-        gerbv_bin,
-        "-x", "png",
-        "-a",
-        "-D", str(dpi),
-        "-o", str(png_out),
-        str(gerb_file),
-    ]
+    # build command (string so we can use shell redirection cheaply)
+    aa_flag = "-a" if anti_alias else ""   # drop AA for speed if you like
+    cmd = f'"{gerbv}" -x png {aa_flag} -D {dpi} -o "{out_png}" "{gerb_file}"'
     if outline_file:
-        cmd.append(str(outline_file))
+        cmd += f' "{outline_file}"'
+    if log_path:
+        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+        cmd += f' 2> "{log_path}"'
+    else:
+        # silence stderr for a small speed/IO win
+        cmd += ' 2> /dev/null' if os.name != "nt" else ' 2> NUL'
 
-    # Write stdout/stderr to a real file (portable; no shell redirection)
-    error_log_path = Path(error_log_path)
-    error_log_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(error_log_path, "w", encoding="utf-8") as logf:
-        subprocess.run(cmd, stdout=logf, stderr=logf, check=True)
+    # FAST path: return immediately (like your original)
+    if not wait:
+        proc = subprocess.Popen(cmd, shell=True)
+        return str(out_png), proc
 
-    # Optional PNG→TIFF conversion
-    if out_format.lower() in {"tif", "tiff"}:
-        try:
-            from PIL import Image
-        except ImportError as e:
-            raise RuntimeError("Pillow is required for TIFF export. Run: pip install pillow") from e
-        tif_out = save_folder / f"{save_name}.tif"
-        with Image.open(png_out) as im:
-            im.save(tif_out, compression="tiff_lzw")
-        return str(tif_out)
-
-    return str(png_out)
-
+    # SYNC path: wait until file is actually written
+    subprocess.run(cmd, shell=True, check=True)
+    return str(out_png), None
 
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
