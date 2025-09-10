@@ -92,7 +92,7 @@ def gerber_to_png_gerbv(
     dpi=1500,
     outline_file=None,
     log_path=None,
-    wait=False,                # async by default
+    wait=True,                # async by default
     anti_alias=True
 ):
     # 1) Normalize paths (handle '~', make absolute)
