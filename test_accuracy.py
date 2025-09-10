@@ -28,9 +28,10 @@ Q1_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / 
 Q3_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q3")
 Q2_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q2")
 Q4_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q4")
-dpi_results = [100, 150, 200, 400, 450, 500, 550, 600, 650, 700]
+dpi_results = [100, 150, 200, 400,]
+
 fills = ['max_percent', 'mean_percent', 'biharmonic','idw','nearest',   'local_mean']
-radii = [75, 200, 400, 600]
+radii = [200, 400, 500]
 # Create the excel file
 excel_output_path = str(project_folder / "Assets" / "Output" / "results.xlsx")
 if not os.path.exists(excel_output_path):
