@@ -104,7 +104,6 @@ def gerber_to_png_gerbv(
     Path(save_folder_temp).mkdir(parents=True, exist_ok=True)
     out_name = f"{save_name}.png"                 # pass just the name
     out_png  = f"{save_folder_temp}/{out_name}"             # this is where it will end up
-    print(out_png)
     # 2) Locate gerbv
     gerbv = shutil.which("gerbv")
     if gerbv is None:
@@ -123,6 +122,7 @@ def gerber_to_png_gerbv(
         cmd.append(str(outline))
 
     # 4) Run
+    print(cmd)
     if wait:
         # with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
         subprocess.run(cmd, check=True)
