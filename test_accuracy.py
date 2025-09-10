@@ -129,7 +129,7 @@ if __name__ == '__main__':
                             wait_for_folder_complete(temp_tiff_folder, expected_count=20)  # Wait for the 20 files to all show up
                         # Now convert the files in the temp_tiff_folder to bitmaps
                         for file in temp_tiff_folder_path.iterdir():
-                            name_key = str(file).split("\\")[-1].split(".tif")[0]
+                            name_key = str(file).replace('/', '\\').split("\\")[-1].split(".tif")[0]
                             arrays[name_key] = bitmap_to_array(file)
                         calculated_layers_preblend = multiple_layers_weighted(arrays)
                         calculated_layers_preblend_edge_mask = fill_border(calculated_layers_preblend, method=edge_fill)
