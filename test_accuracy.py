@@ -123,7 +123,7 @@ if __name__ == '__main__':
                         layer_weights_for_blend[name] = gerber_path[1]
                         if name in arrays:
                             continue
-                        gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder=temp_tiff_folder, save_name=name, dpi=dpi)  # Convert the gerbers to arrays
+                        gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder_temp=temp_tiff_folder, save_name=name, dpi=dpi)  # Convert the gerbers to arrays
                         wait_for_calcs = True
                     try:
                         if wait_for_calcs:
