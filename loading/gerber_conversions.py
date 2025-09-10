@@ -117,7 +117,7 @@ def gerber_to_png_gerbv(
     cmd = [gerbv, "-x", "png", "-D", str(dpi)]
     if anti_alias:
         cmd.append("-a")
-    cmd += ["-o", out_name, str(gerb_file)]
+    cmd += ["-o", out_png, str(gerb_file)]
     if outline:
         cmd.append(str(outline))
 
