@@ -21,7 +21,6 @@ top_data_loc = str(project_folder / "Assets" / "AkroFiles" / "TopDatFiles")  # T
 bot_data_loc = str(project_folder / "Assets" / "AkroFiles" / "BottomDatFiles")  # The folder that holds the bottom Akro data
 
 temp_tiff_folder = str(project_folder / "Assets" / "temp_tiff")
-print(temp_tiff_folder)
 temp_tiff_folder_path = Path(temp_tiff_folder)
 
 
