@@ -125,11 +125,11 @@ def gerber_to_png_gerbv(
     # 4) Run
     if wait:
         with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
-            subprocess.run(cmd, cwd=str(save_folder), stdout=logf, stderr=logf, check=True)
+            subprocess.run(cmd, stdout=logf, stderr=logf, check=True)
         return str(out_png), None
     else:
         # For async, don't keep a file handle open; discard output
-        proc = subprocess.Popen(cmd, cwd=str(save_folder),
+        proc = subprocess.Popen(cmd,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return str(out_png), proc
 
