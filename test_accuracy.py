@@ -71,7 +71,7 @@ if __name__ == '__main__':
                 arrays = {}
                 # Cycle through the Top Global Data Files
                 for top_global_path in top_data_files:
-
+                    skip=False
                     # Material and Supplier
                     tmp_id = '-'.join(top_global_path.replace('/', '\\').split('\\')[-1].split('-')[0:3])
                     mat_sup_id = f"{tmp_id}_EF{edge_fill}_DPI{dpi}_R{radius}"
@@ -127,35 +127,37 @@ if __name__ == '__main__':
                             gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder_temp=temp_tiff_folder, save_name=name, dpi=dpi)  # Convert the gerbers to arrays
                         except Exception as error:
                             print(f"Gerbv Failed {error}")
+                            skip = True
                             break
                         wait_for_calcs = True
-                    try:
-                        if wait_for_calcs:
-                            wait_for_folder_complete(temp_tiff_folder, expected_count=20)  # Wait for the 20 files to all show up
-                        # Now convert the files in the temp_tiff_folder to bitmaps
-                        for file in temp_tiff_folder_path.iterdir():
-                            name_key = str(file).replace('/', '\\').split("\\")[-1].split(".tif")[0]
-                            arrays[name_key] = bitmap_to_array(file)
-                        calculated_layers_preblend = multiple_layers_weighted(arrays)
-                        calculated_layers_preblend_edge_mask = fill_border(calculated_layers_preblend, method=edge_fill)
-                        calculated_layers_blended = met_ave(calculated_layers_preblend_edge_mask, radius=radius)
-                        calculated_layers_blended_shrink = shrink_array(calculated_layers_blended, dat_file_9999_filled.shape)
-                        calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, scale = rescale_to_shared_minmax(calculated_layers_blended_shrink, dat_file_9999_filled)
-                        stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
-                        plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
-                        ws.append([
-                            f'{Quartile_loc}_{mat_sup_id}', Quartile_loc, edge_fill, dpi, radius, mat_sup_id, str(scale),
-                            stats.get("n_points"), stats.get("rmse"), stats.get("mae"), stats.get("bias"),
-                            stats.get("pearson_r"), stats.get("spearman_r"), stats.get("r2"),
-                            stats.get("svd_var_explained"), stats.get("slope"), stats.get("intercept"),
-                            stats.get("lambda_ratio"), stats.get("text")
-                        ])
-                        wb.save(excel_output_path)
-                        print(f"Complete: {Quartile_loc}_{mat_sup_id}")
-                    except Exception as error:
-                        print(error)
-                        # fig = plot_point_clouds_side_by_side_same_cmap(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale)
-                        # fig.show()
+                    if not skip:
+                        try:
+                            if wait_for_calcs:
+                                wait_for_folder_complete(temp_tiff_folder, expected_count=20)  # Wait for the 20 files to all show up
+                            # Now convert the files in the temp_tiff_folder to bitmaps
+                            for file in temp_tiff_folder_path.iterdir():
+                                name_key = str(file).replace('/', '\\').split("\\")[-1].split(".tif")[0]
+                                arrays[name_key] = bitmap_to_array(file)
+                            calculated_layers_preblend = multiple_layers_weighted(arrays)
+                            calculated_layers_preblend_edge_mask = fill_border(calculated_layers_preblend, method=edge_fill)
+                            calculated_layers_blended = met_ave(calculated_layers_preblend_edge_mask, radius=radius)
+                            calculated_layers_blended_shrink = shrink_array(calculated_layers_blended, dat_file_9999_filled.shape)
+                            calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, scale = rescale_to_shared_minmax(calculated_layers_blended_shrink, dat_file_9999_filled)
+                            stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
+                            plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
+                            ws.append([
+                                f'{Quartile_loc}_{mat_sup_id}', Quartile_loc, edge_fill, dpi, radius, mat_sup_id, str(scale),
+                                stats.get("n_points"), stats.get("rmse"), stats.get("mae"), stats.get("bias"),
+                                stats.get("pearson_r"), stats.get("spearman_r"), stats.get("r2"),
+                                stats.get("svd_var_explained"), stats.get("slope"), stats.get("intercept"),
+                                stats.get("lambda_ratio"), stats.get("text")
+                            ])
+                            wb.save(excel_output_path)
+                            print(f"Complete: {Quartile_loc}_{mat_sup_id}")
+                        except Exception as error:
+                            print(error)
+                            # fig = plot_point_clouds_side_by_side_same_cmap(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale)
+                            # fig.show()
 
                         pass
                     pass
