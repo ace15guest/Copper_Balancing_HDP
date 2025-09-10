@@ -96,6 +96,7 @@ def gerber_to_png_gerbv(
     anti_alias=True
 ):
     # 1) Normalize paths (handle '~', make absolute)
+    print(save_folder)
     gerb_file = Path(gerb_file).expanduser().resolve()
     save_folder = Path(save_folder).expanduser().resolve()
     outline = Path(outline_file).expanduser().resolve() if outline_file else None
@@ -120,7 +121,7 @@ def gerber_to_png_gerbv(
     cmd += ["-o", out_name, str(gerb_file)]
     if outline:
         cmd.append(str(outline))
-    print(cmd)
+
     # 4) Run
     if wait:
         with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
