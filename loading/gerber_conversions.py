@@ -51,7 +51,7 @@ def gerber_to_274x(file_path, save_path):
     subprocess.Popen(command)
     return
 
-def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log", outline_file=None):
+def gerber_to_png_gerbv_windows_only(gerb_file, save_folder, save_path, dpi=1500, scale=1, error_log_path="error.log", outline_file=None):
     """
     Convert Gerber file to PNG using Gerbv.
     Parameters:
@@ -74,6 +74,73 @@ def gerber_to_png_gerbv(gerb_file, save_folder, save_path, dpi=1500, scale=1, er
         command = f'Assets\gerbv\gerbv -x png -a -D {dpi} -o "{save_path}" "{gerb_file}" "{outline_file}" 2> {error_log_path}.txt'
     subprocess.Popen(command)
     return save_path
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+def gerber_to_png_gerbv(
+    gerb_file,
+    save_folder,
+    save_name,                   # no extension
+    dpi=1500,
+    error_log_path="error.log",
+    outline_file=None,
+    out_format="png",            # "png" or "tif"
+):
+    """
+    Render Gerber(s) to raster via gerbv CLI.
+    - On Linux: `sudo apt install gerbv`
+    - For TIFF, we export PNG then convert with Pillow (pip install pillow).
+    """
+    gerb_file = Path(gerb_file)
+    outline_file = Path(outline_file) if outline_file else None
+    save_folder = Path(save_folder)
+    save_folder.mkdir(parents=True, exist_ok=True)
+
+    # Locate gerbv (PATH first, then local Assets/gerbv/)
+    gerbv_bin = shutil.which("gerbv")
+    if gerbv_bin is None:
+        candidate = Path("Assets") / "gerbv" / ("gerbv.exe" if os.name == "nt" else "gerbv")
+        if candidate.exists():
+            gerbv_bin = str(candidate)
+        else:
+            raise FileNotFoundError("gerbv not found in PATH or Assets/gerbv/")
+
+    # We always ask gerbv for PNG (it doesn't natively export TIFF)
+    png_out = save_folder / f"{save_name}.png"
+
+    cmd = [
+        gerbv_bin,
+        "-x", "png",
+        "-a",
+        "-D", str(dpi),
+        "-o", str(png_out),
+        str(gerb_file),
+    ]
+    if outline_file:
+        cmd.append(str(outline_file))
+
+    # Write stdout/stderr to a real file (portable; no shell redirection)
+    error_log_path = Path(error_log_path)
+    error_log_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(error_log_path, "w", encoding="utf-8") as logf:
+        subprocess.run(cmd, stdout=logf, stderr=logf, check=True)
+
+    # Optional PNG→TIFF conversion
+    if out_format.lower() in {"tif", "tiff"}:
+        try:
+            from PIL import Image
+        except ImportError as e:
+            raise RuntimeError("Pillow is required for TIFF export. Run: pip install pillow") from e
+        tif_out = save_folder / f"{save_name}.tif"
+        with Image.open(png_out) as im:
+            im.save(tif_out, compression="tiff_lzw")
+        return str(tif_out)
+
+    return str(png_out)
+
 
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
