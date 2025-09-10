@@ -127,7 +127,7 @@ if __name__ == '__main__':
                             gerber_to_png_gerbv(gerb_file=gerber_path[0], save_folder_temp=temp_tiff_folder, save_name=name, dpi=dpi)  # Convert the gerbers to arrays
                         except Exception as error:
                             print(f"Gerbv Failed {error}")
-                            continue
+                            break
                         wait_for_calcs = True
                     try:
                         if wait_for_calcs:
