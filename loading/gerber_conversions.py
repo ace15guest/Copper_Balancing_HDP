@@ -122,16 +122,16 @@ def gerber_to_png_gerbv(
         cmd.append(str(outline))
 
     # 4) Run
-
+    print(' '.join(cmd))
     if wait:
         # with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
         subprocess.run(cmd, check=True)
-        return str(out_png), None
+        return ' '.join(cmd)
     else:
         # For async, don't keep a file handle open; discard output
         proc = subprocess.Popen(cmd,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return str(out_png), proc
+        return ' '.join(cmd)
 
 
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):

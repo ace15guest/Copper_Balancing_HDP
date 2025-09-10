@@ -71,7 +71,7 @@ if __name__ == '__main__':
                 arrays = {}
                 # Cycle through the Top Global Data Files
                 for top_global_path in top_data_files:
-                    print(top_global_path)
+
                     # Material and Supplier
                     tmp_id = '-'.join(top_global_path.replace('/', '\\').split('\\')[-1].split('-')[0:3])
                     mat_sup_id = f"{tmp_id}_EF{edge_fill}_DPI{dpi}_R{radius}"
