@@ -87,7 +87,7 @@ from pathlib import Path
 
 def gerber_to_png_gerbv(
     gerb_file,
-    save_folder,
+    save_folder_temp,
     save_name,                 # no extension
     dpi=1500,
     outline_file=None,
@@ -96,14 +96,14 @@ def gerber_to_png_gerbv(
     anti_alias=True
 ):
     # 1) Normalize paths (handle '~', make absolute)
-    print(save_folder)
+    print(save_folder_temp)
     gerb_file = Path(gerb_file).expanduser().resolve()
-    save_folder = Path(save_folder)
+    save_folder_new = Path(save_folder_temp)
     outline = Path(outline_file).expanduser().resolve() if outline_file else None
 
-    save_folder.mkdir(parents=True, exist_ok=True)
+    Path(save_folder_temp).mkdir(parents=True, exist_ok=True)
     out_name = f"{save_name}.png"                 # pass just the name
-    out_png  = str(save_folder / out_name)             # this is where it will end up)
+    out_png  = f"{save_folder_temp}/{out_name}"             # this is where it will end up
     print(out_png)
     # 2) Locate gerbv
     gerbv = shutil.which("gerbv")
