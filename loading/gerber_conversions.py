@@ -80,12 +80,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import os
-import shutil
-import subprocess
-from pathlib import Path
-
-def gerber_to_png_gerbv(gerb_file, save_folder_temp, save_name, dpi=1500, outline_file=None,  log_path=None, wait=True, anti_alias=False):
+def gerber_to_png_gerbv(gerb_file, save_folder_temp, save_name, dpi=1500, outline_file=None,  log_path=None, wait=False, anti_alias=False):
     # 1) Normalize paths (handle '~', make absolute)
 
     gerb_file = Path(gerb_file).expanduser().resolve()
@@ -113,10 +108,10 @@ def gerber_to_png_gerbv(gerb_file, save_folder_temp, save_name, dpi=1500, outlin
         cmd.append(str(outline))
 
     # 4) Run
-    print(' '.join(cmd))
+    cmd = ' '.join(cmd)
     if wait:
         # with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
-        subprocess.run(cmd, check=True)
+        subprocess.Popen(cmd)
         return ' '.join(cmd)
     else:
         # For async, don't keep a file handle open; discard output
