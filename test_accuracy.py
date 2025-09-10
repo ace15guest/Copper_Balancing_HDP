@@ -117,7 +117,7 @@ if __name__ == '__main__':
                         continue
 
                     for gerber_path in gerber_files:
-                        name = gerber_path[0].split("\\")[-1].split(".gbr")[0]
+                        name = gerber_path[0].replace('/', '\\').split("\\")[-1].split(".gbr")[0]
                         layer_names_for_blend.append(name)
                         layer_weights_for_blend[name] = gerber_path[1]
                         if name in arrays:
