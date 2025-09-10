@@ -80,6 +80,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
 def gerber_to_png_gerbv(
     gerb_file,
     save_folder,
@@ -87,21 +92,19 @@ def gerber_to_png_gerbv(
     dpi=1500,
     outline_file=None,
     log_path=None,
-    wait=False,                # ← async by default (fast return)
-    anti_alias=True            # set False for a speed bump
+    wait=False,                # async by default
+    anti_alias=True
 ):
-    """
-    Render Gerber(s) with gerbv. Exports PNG. Returns (output_path, proc_or_None).
-    - Linux: `sudo apt install gerbv`
-    - Windows: add gerbv to PATH (or keep in Assets/gerbv)
-    """
-    gerb_file = str(gerb_file)
-    save_folder = Path(save_folder)
-    print(save_folder)
-    save_folder.mkdir(parents=True, exist_ok=True)
-    out_png = save_folder / f"{save_name}.png"
+    # 1) Normalize paths (handle '~', make absolute)
+    gerb_file   = Path(gerb_file).expanduser().resolve()
+    save_folder = Path(save_folder).expanduser().resolve()
+    outline     = Path(outline_file).expanduser().resolve() if outline_file else None
 
-    # pick gerbv from PATH or fallback to Assets/gerbv
+    save_folder.mkdir(parents=True, exist_ok=True)
+    out_name = f"{save_name}.png"                 # pass just the name
+    out_png  = save_folder / out_name             # this is where it will end up
+
+    # 2) Locate gerbv
     gerbv = shutil.which("gerbv")
     if gerbv is None:
         candidate = Path("Assets") / "gerbv" / ("gerbv.exe" if os.name == "nt" else "gerbv")
@@ -110,27 +113,25 @@ def gerber_to_png_gerbv(
         else:
             raise FileNotFoundError("gerbv not found in PATH or Assets/gerbv/")
 
-    # build command (string so we can use shell redirection cheaply)
-    aa_flag = "-a" if anti_alias else ""   # drop AA for speed if you like
-    cmd = f'"{gerbv}" -x png {aa_flag} -D {dpi} -o "{out_png}" "{gerb_file}"'
-
-    if outline_file:
-        cmd += f' "{outline_file}"'
-    if log_path:
-        Path(log_path).parent.mkdir(parents=True, exist_ok=True)
-        cmd += f' 2> "{log_path}"'
+    # 3) Build argv (no shell), and set cwd=save_folder so output goes there
+    cmd = [gerbv, "-x", "png", "-D", str(dpi)]
+    if anti_alias:
+        cmd.append("-a")
+    cmd += ["-o", out_name, str(gerb_file)]
+    if outline:
+        cmd.append(str(outline))
+    print(cmd)
+    # 4) Run
+    if wait:
+        with open(log_path, "w") if log_path else subprocess.DEVNULL as logf:  # type: ignore
+            subprocess.run(cmd, cwd=str(save_folder), stdout=logf, stderr=logf, check=True)
+        return str(out_png), None
     else:
-        # silence stderr for a small speed/IO win
-        cmd += ' 2> /dev/null' if os.name != "nt" else ' 2> NUL'
-
-    # FAST path: return immediately (like your original)
-    if not wait:
-        proc = subprocess.Popen(cmd, shell=True)
+        # For async, don't keep a file handle open; discard output
+        proc = subprocess.Popen(cmd, cwd=str(save_folder),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return str(out_png), proc
 
-    # SYNC path: wait until file is actually written
-    subprocess.run(cmd, shell=True, check=True)
-    return str(out_png), None
 
 def gerber_to_pdf_gerbv(file_path, save_folder, save_path, D=50):
     """
