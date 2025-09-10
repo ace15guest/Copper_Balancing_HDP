@@ -96,14 +96,14 @@ def gerber_to_png_gerbv(
     anti_alias=True
 ):
     # 1) Normalize paths (handle '~', make absolute)
-    gerb_file   = Path(gerb_file).expanduser().resolve()
+    gerb_file = Path(gerb_file).expanduser().resolve()
     save_folder = Path(save_folder).expanduser().resolve()
-    outline     = Path(outline_file).expanduser().resolve() if outline_file else None
+    outline = Path(outline_file).expanduser().resolve() if outline_file else None
 
     save_folder.mkdir(parents=True, exist_ok=True)
     out_name = f"{save_name}.png"                 # pass just the name
-    out_png  = save_folder / out_name             # this is where it will end up
-
+    out_png  = str(save_folder / out_name)             # this is where it will end up)
+    print(out_png)
     # 2) Locate gerbv
     gerbv = shutil.which("gerbv")
     if gerbv is None:
