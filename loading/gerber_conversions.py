@@ -98,7 +98,7 @@ def gerber_to_png_gerbv(
     # 1) Normalize paths (handle '~', make absolute)
     print(save_folder)
     gerb_file = Path(gerb_file).expanduser().resolve()
-    save_folder = Path(save_folder).expanduser().resolve()
+    save_folder = Path(save_folder)
     outline = Path(outline_file).expanduser().resolve() if outline_file else None
 
     save_folder.mkdir(parents=True, exist_ok=True)
