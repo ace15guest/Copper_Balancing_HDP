@@ -13,6 +13,8 @@ from calculations.layer_calcs import met_ave
 from plotting.comparing import plot_pointclouds_and_heatmaps
 from calculations.padding import fill_border
 from calculations.comparison import align_and_compare
+from calculations.gradient import analyze_gradients
+
 from pathlib import Path
 
 project_folder = Path.cwd()
@@ -30,8 +32,10 @@ Q2_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / 
 Q4_folder = str(project_folder / "Assets" / "gerbers" / "Cu_Balancing_Gerber" / "Q4")
 dpi_results = [100, 150, 200, 400,]
 
-fills = ['max_percent', 'mean_percent', 'biharmonic','idw','nearest',   'local_mean']
-radii = [200, 400, 500]
+fills = ['max_percent', 'mean_percent', 'biharmonic', 'idw','nearest', 'local_mean']
+radii = [100, 200, 400, 500]
+window_size = 3
+grad_type = "plane"
 # Create the excel file
 excel_output_path = str(project_folder / "Assets" / "Output" / "results.xlsx")
 if not os.path.exists(excel_output_path):
@@ -39,11 +43,7 @@ if not os.path.exists(excel_output_path):
     ws = wb.active
     if ws.max_row > 1:
         ws.delete_rows(2, ws.max_row - 1)
-    ws.append([
-        "Identifier", "quartile", "edge_fill", "dpi", "radius", "mat_sup_id", "scale",
-        "n_points", "rmse", "mae", "bias", "pearson_r", "spearman_r", "r2",
-        "svd_var_explained", "slope", "intercept", "lambda_ratio", "notes"
-    ])
+    ws.append(['Identifier', 'Quartile','Edgefill','DPI','BlurRaidus','Material Supplier','N', 'RMSE_3d', 'P95_3d', 'RMSE_Z', 'P95_Z', 'r', 'R2', 'angle_mean_deg', 'angle_median_deg', 'angle_p95_deg', 'mag_ratio_mean', 'mag_ratio_median', 'mag_ratio_p05', 'mag_ratio_p95', 'Window', 'Grad Method'])
     wb.save(excel_output_path)
 
 
@@ -67,7 +67,6 @@ if __name__ == '__main__':
 
     for dpi in dpi_results:
         for edge_fill in fills:
-
             for radius in radii:
                 arrays = {}
                 # Cycle through the Top Global Data Files
@@ -80,12 +79,10 @@ if __name__ == '__main__':
                     # Clear the temporary tiff folder
                     # print("Clearing Temporary Tiff Folder")
                     clear_folder(temp_tiff_folder)
-                    time.sleep(.1)
                     # Create list of layer names to be blended
                     layer_names_for_blend = []
                     layer_weights_for_blend = {}
                     recalculate_array = False  # If we have the array already stored in memory, no need to recalculate anything
-
 
                     #Wait for calculations
                     wait_for_calcs = False
@@ -109,6 +106,10 @@ if __name__ == '__main__':
                     if Path('\\'.join([plot_save_folder, plot_save_name])+".html").exists() or Path('/'.join([plot_save_folder, plot_save_name])+".html").exists():
                         print(f"Completed Prior: {Quartile_loc}_{mat_sup_id}")
                         continue
+                    colA_values = [cell.value for cell in ws['A']]
+                    if f'{Quartile_loc}_{mat_sup_id}' in colA_values:
+                        continue
+
                     # Read the Akro Arrays and interpolate the nan values so we dont have 9999 or np.nan
                     try:
                         dat_file_orig = np.loadtxt(top_global_path, delimiter="\t")
@@ -145,14 +146,45 @@ if __name__ == '__main__':
                             calculated_layers_blended_shrink = shrink_array(calculated_layers_blended, dat_file_9999_filled.shape)
                             calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, scale = rescale_to_shared_minmax(calculated_layers_blended_shrink, dat_file_9999_filled)
                             stats = align_and_compare(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, ignore_zeros=False, detrend=True, with_scaling=False)
-                            plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
-                            ws.append([
-                                f'{Quartile_loc}_{mat_sup_id}', Quartile_loc, edge_fill, dpi, radius, mat_sup_id, str(scale),
-                                stats.get("n_points"), stats.get("rmse"), stats.get("mae"), stats.get("bias"),
-                                stats.get("pearson_r"), stats.get("spearman_r"), stats.get("r2"),
-                                stats.get("svd_var_explained"), stats.get("slope"), stats.get("intercept"),
-                                stats.get("lambda_ratio"), stats.get("text")
-                            ])
+
+                            metrics, angle_diff, mag_ratio = analyze_gradients(
+                                calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale,
+                                dx=1.0,
+                                dy=1.0,
+                                method="finite",  # try "finite" or "plane"
+                                window_size=3,  # 3 or 5 recommended
+                                make_plots=True,
+                            )
+                            # Plotting the two rescaled point clouds in a 3d map with output variables
+                            # plot_pointclouds_and_heatmaps(calculated_layers_blended_shrink_rescale, dat_file_9999_filled_rescale, plot_save_folder, plot_save_name, stats_text=stats["text"])
+
+
+                            n = stats.get('text').split('|')[0].split('=')[-1].strip()
+                            rmse_3d =stats.get('text').split('|')[1].split('=')[-1].strip()
+                            p95_3d = stats.get('text').split('|')[2].split('=')[-1].strip()
+                            rmse_z = stats.get('text').split('|')[3].split('=')[-1].strip()
+                            p95_z = stats.get('text').split('|')[4].split('=')[-1].strip()
+                            r = stats.get('text').split('|')[5].split('=')[-1].strip()
+                            R2 = stats.get('text').split('|')[7].split('=')[-1].strip()
+
+                            value0 = [f'{Quartile_loc}_{mat_sup_id}', Quartile_loc, edge_fill, dpi, radius, mat_sup_id]
+                            value1 = [n, rmse_3d, p95_3d, rmse_z, p95_z, r, R2]
+                            value2 = list(metrics.values())
+                            value2.append(window_size)
+                            value2.append(grad_type)
+                            value = value0 + value1 + value2
+
+                            header1 = ["N", "RMSE_3d", "P95_3d", "RMSE_Z", "P95_Z", "r", "R2"]
+                            header2 = list(metrics.keys())
+                            header = header1 +header2
+                            header.append("Window")
+                            header.append("Grad Method")
+
+
+
+                            a=['n=1516700 ', ' rmse₃ᴅ=178.3 ', ' p95₃ᴅ=417 ', ' rmse_z=178.2 ', ' p95_z=416.9 ', ' r=-0.070 ', ' zB≈-0.084·zA+0.000 ', ' R²=0.005 ', ' scale=1.0000 ', ' detrended']
+
+                            ws.append(value)
                             wb.save(excel_output_path)
                             print(f"Complete: {Quartile_loc}_{mat_sup_id}")
                         except Exception as error:
